@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { ArrowLeft, Clock, Sparkles, CheckCircle, Share2, ThumbsUp, Bookmark, Copy, Award } from "lucide-react";
 
@@ -120,172 +120,9 @@ export default function BlogPostDetailClient({
     }
   };
 
-  // Custom visual markdown elements parser
-  const renderParagraph = (text: string, pIdx: number) => {
-    let trimmed = text.trim();
-    
-    // Extract anchor name if present (e.g. <a name="introduction"></a>)
-    let anchorId = "";
-    const anchorMatch = trimmed.match(/<a\s+name=["'](.*?)["']><\/a>\s*/i);
-    if (anchorMatch) {
-      anchorId = anchorMatch[1];
-      trimmed = trimmed.replace(anchorMatch[0], "").trim();
-    }
-    
-    if (trimmed.length === 0) {
-      return null;
-    }
-    
-    // 1. Filter out SEO Brief Block
-    if (
-      trimmed.startsWith("[SEO BRIEF]") || 
-      trimmed.startsWith("- **Primary Keyword**") || 
-      trimmed.startsWith("- **Secondary Keywords**") || 
-      trimmed.startsWith("- **Search Intent**") || 
-      trimmed.startsWith("- **Meta Title**") || 
-      trimmed.startsWith("- **Meta Description**") || 
-      trimmed.startsWith("- **Featured Snippet Opportunity**") || 
-      trimmed.startsWith("- **Internal Linking Suggestions**") || 
-      trimmed.startsWith("- **Social Media Snippets**") ||
-      trimmed.includes("Primary Keyword") ||
-      trimmed.includes("Search Intent")
-    ) {
-      return null;
-    }
-    if (trimmed.startsWith("---") && pIdx < 3) {
-      return null;
-    }
-    
-    // 2. Headings
-    if (trimmed.startsWith("# ")) {
-      return null; // Title is rendered dynamically at the top
-    }
-    if (trimmed.startsWith("## ")) {
-      return (
-        <h2 key={pIdx} id={anchorId || undefined} className="text-2xl sm:text-3xl font-bold font-display text-white mt-12 mb-4 tracking-wide border-b border-slate-900 pb-2">
-          {trimmed.replace("## ", "")}
-        </h2>
-      );
-    }
-    if (trimmed.startsWith("### ")) {
-      return (
-        <h3 key={pIdx} id={anchorId || undefined} className="text-xl sm:text-2xl font-bold font-display text-white mt-8 mb-3">
-          {trimmed.replace("### ", "")}
-        </h3>
-      );
-    }
-
-    // 3. Alerts & Blockquotes
-    if (trimmed.startsWith("> [!TIP]") || trimmed.startsWith("> [!IMPORTANT]") || trimmed.startsWith("> [!NOTE]")) {
-      const cleanQuote = trimmed
-        .replace(/> \[\!(TIP|IMPORTANT|NOTE)\]\n?/g, "")
-        .replace(/> /g, "");
-      return (
-        <blockquote key={pIdx} className="p-6 bg-[#050e1c]/80 border-l-4 border-[#d4af37] rounded-r-xl my-8 text-slate-300 italic text-sm sm:text-base leading-relaxed">
-          {cleanQuote}
-        </blockquote>
-      );
-    }
-    if (trimmed.startsWith(">")) {
-      return (
-        <blockquote key={pIdx} className="border-l-4 border-slate-800 pl-4 py-1 italic text-slate-400 my-6">
-          {trimmed.replace(/^>\s*/g, "")}
-        </blockquote>
-      );
-    }
-
-    // 4. Code schematic boxes
-    if (trimmed.startsWith("```")) {
-      const codeLines = trimmed.split("\n").filter(line => !line.startsWith("```"));
-      return (
-        <pre key={pIdx} className="p-5 bg-[#020813] border border-slate-900 rounded-xl overflow-x-auto my-6 text-xs sm:text-sm font-mono text-slate-350 leading-normal scrollbar-thin">
-          <code>{codeLines.join("\n")}</code>
-        </pre>
-      );
-    }
-
-    // 5. Comparison matrices tables
-    if (trimmed.startsWith("|")) {
-      const rows = trimmed.split("\n").map(r => r.split("|").map(c => c.trim()).filter(c => c !== ""));
-      if (rows.length < 2) return null;
-      
-      const dataRows = rows.filter(r => !r[0]?.startsWith("---") && !r[0]?.startsWith(" :---"));
-      const headers = dataRows[0];
-      const body = dataRows.slice(1);
-
-      return (
-        <div key={pIdx} className="my-8 overflow-x-auto border border-slate-900 rounded-xl">
-          <table className="min-w-full divide-y divide-slate-900 text-sm">
-            <thead className="bg-[#050e1c]">
-              <tr>
-                {headers.map((h, i) => (
-                  <th key={i} className="px-4 py-3 text-left font-semibold text-white uppercase tracking-wider text-xs">
-                    {h}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-950 bg-[#030a16]/40">
-              {body.map((row, rI) => (
-                <tr key={rI} className="hover:bg-slate-950/20">
-                  {row.map((cell, cI) => (
-                    <td key={cI} className="px-4 py-3 text-slate-300 font-light">
-                      {cell}
-                    </td>
-                  ))}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      );
-    }
-
-    // 6. Visual blueprint diagrams
-    if (trimmed.startsWith("![")) {
-      const altMatch = trimmed.match(/!\[(.*?)\]/);
-      const urlMatch = trimmed.match(/\((.*?)\)/);
-      if (urlMatch) {
-        return (
-          <div key={pIdx} className="my-8 space-y-2">
-            <div className="relative w-full rounded-2xl overflow-hidden border border-slate-900 shadow-lg bg-slate-950">
-              <img src={urlMatch[1]} alt={altMatch ? altMatch[1] : "Blueprint"} className="w-full h-auto max-h-[480px] object-cover" />
-            </div>
-            {altMatch && (
-              <p className="text-center text-xs text-slate-550 font-light italic">
-                {altMatch[1]}
-              </p>
-            )}
-          </div>
-        );
-      }
-    }
-
-    // 7. Lists
-    if (trimmed.startsWith("- [ ]") || trimmed.startsWith("- [x]") || trimmed.startsWith("- ") || trimmed.startsWith("* ")) {
-      const items = trimmed.split("\n").map(item => {
-        return item.replace(/^-\s*\[\s*[ x]?\s*\]\s*/g, "").replace(/^-\s*/g, "").replace(/^\*\s*/g, "");
-      });
-      return (
-        <ul key={pIdx} className="space-y-3 my-6 pl-5 list-disc text-slate-350">
-          {items.map((item, iI) => (
-            <li key={iI} className="leading-relaxed font-light text-base sm:text-[18px]">
-              {item}
-            </li>
-          ))}
-        </ul>
-      );
-    }
-
-    // 8. Normal text paragraph
-    return (
-      <p key={pIdx} className="text-slate-305 text-base sm:text-[18px] leading-[1.8] font-light my-6 tracking-wide">
-        {trimmed}
-      </p>
-    );
-  };
-
-  const rawParagraphs = post.content ? post.content.split("\n\n").filter(p => p.trim().length > 0) : [];
+  // Parse markdown content into structured blocks
+  const cleanedContent = post.content ? stripSeoBrief(post.content) : "";
+  const parsedBlocks = cleanedContent ? parseMarkdownBlocks(cleanedContent) : [];
 
   return (
     <div className="py-12 pb-20 relative">
@@ -399,8 +236,8 @@ export default function BlogPostDetailClient({
         )}
 
         {/* Dynamic Markdown Render paragraphs */}
-        {rawParagraphs.length > 0 ? (
-          rawParagraphs.map((para, pIdx) => renderParagraph(para, pIdx))
+        {parsedBlocks.length > 0 ? (
+          parsedBlocks.map((block, bIdx) => renderBlock(block, bIdx))
         ) : (
           post.sections.map((sec, idx) => (
             <div key={idx} className="space-y-4 pt-4 text-left">
@@ -521,4 +358,395 @@ export default function BlogPostDetailClient({
 
     </div>
   );
+}
+
+// ==========================================
+// MARKDOWN PARSER HELPERS & TYPES
+// ==========================================
+
+interface MarkdownBlock {
+  type: "heading" | "list" | "table" | "code" | "blockquote" | "hr" | "paragraph" | "image";
+  level?: number;
+  ordered?: boolean;
+  items?: string[];
+  codeLang?: string;
+  codeText?: string;
+  tableRows?: string[][];
+  text?: string;
+  imageUrl?: string;
+  imageAlt?: string;
+}
+
+function stripSeoBrief(content: string): string {
+  const separatorIndex = content.indexOf("---");
+  if (separatorIndex !== -1) {
+    return content.substring(separatorIndex + 3).trim();
+  }
+  return content;
+}
+
+function parseMarkdownBlocks(content: string): MarkdownBlock[] {
+  const blocks: MarkdownBlock[] = [];
+  const lines = content.split("\n");
+  let i = 0;
+  
+  while (i < lines.length) {
+    const line = lines[i];
+    const trimmed = line.trim();
+    
+    // Skip empty lines
+    if (trimmed.length === 0) {
+      i++;
+      continue;
+    }
+    
+    // 1. Code Blocks
+    if (trimmed.startsWith("```")) {
+      const codeLang = trimmed.replace("```", "").trim();
+      let codeText = "";
+      i++;
+      while (i < lines.length && !lines[i].trim().startsWith("```")) {
+        codeText += lines[i] + "\n";
+        i++;
+      }
+      if (i < lines.length) i++; // skip closing ```
+      blocks.push({ type: "code", codeLang, codeText: codeText.trim() });
+      continue;
+    }
+    
+    // 2. Blockquotes
+    if (trimmed.startsWith(">")) {
+      let blockquoteText = "";
+      while (i < lines.length && lines[i].trim().startsWith(">")) {
+        const cleanLine = lines[i].trim().replace(/^>\s*/, "");
+        blockquoteText += cleanLine + " ";
+        i++;
+      }
+      blocks.push({ type: "blockquote", text: blockquoteText.trim() });
+      continue;
+    }
+    
+    // 3. Tables
+    if (trimmed.startsWith("|")) {
+      const tableRows: string[][] = [];
+      while (i < lines.length && lines[i].trim().startsWith("|")) {
+        const row = lines[i].split("|").map(cell => cell.trim()).filter((cell, idx, arr) => idx > 0 && idx < arr.length - 1);
+        const isSeparator = row.every(cell => cell.startsWith("---") || cell.startsWith(" :---") || cell.startsWith(":-") || cell.startsWith("-"));
+        if (!isSeparator) {
+          tableRows.push(row);
+        }
+        i++;
+      }
+      blocks.push({ type: "table", tableRows });
+      continue;
+    }
+    
+    // 4. Horizontal Rules
+    if (trimmed === "---") {
+      blocks.push({ type: "hr" });
+      i++;
+      continue;
+    }
+    
+    // 5. Headings
+    if (trimmed.startsWith("# ")) {
+      blocks.push({ type: "heading", level: 1, text: trimmed.replace("# ", "") });
+      i++;
+      continue;
+    }
+    if (trimmed.startsWith("## ")) {
+      blocks.push({ type: "heading", level: 2, text: trimmed.replace("## ", "") });
+      i++;
+      continue;
+    }
+    if (trimmed.startsWith("### ")) {
+      blocks.push({ type: "heading", level: 3, text: trimmed.replace("### ", "") });
+      i++;
+      continue;
+    }
+    
+    // 6. Images
+    if (trimmed.startsWith("![")) {
+      const altMatch = trimmed.match(/!\[(.*?)\]/);
+      const urlMatch = trimmed.match(/\((.*?)\)/);
+      if (urlMatch) {
+        blocks.push({
+          type: "image",
+          imageUrl: urlMatch[1],
+          imageAlt: altMatch ? altMatch[1] : "Image"
+        });
+        i++;
+        continue;
+      }
+    }
+    
+    // 7. Lists (ordered and unordered)
+    const isUnordered = trimmed.startsWith("- ") || trimmed.startsWith("* ");
+    const isOrdered = /^\d+\.\s+/.test(trimmed);
+    if (isUnordered || isOrdered) {
+      const items: string[] = [];
+      const ordered = isOrdered;
+      
+      while (i < lines.length) {
+        const currTrimmed = lines[i].trim();
+        const currIsUnordered = currTrimmed.startsWith("- ") || currTrimmed.startsWith("* ");
+        const currIsOrdered = /^\d+\.\s+/.test(currTrimmed);
+        
+        if (currIsUnordered && !ordered) {
+          items.push(currTrimmed.replace(/^[-*]\s+/, ""));
+          i++;
+        } else if (currIsOrdered && ordered) {
+          items.push(currTrimmed.replace(/^\d+\.\s+/, ""));
+          i++;
+        } else {
+          break;
+        }
+      }
+      blocks.push({ type: "list", ordered, items });
+      continue;
+    }
+    
+    // 8. Normal Paragraph (accumulate consecutive non-empty plain text lines)
+    let paraText = "";
+    while (i < lines.length) {
+      const currTrimmed = lines[i].trim();
+      if (currTrimmed.length === 0 || 
+          currTrimmed.startsWith("#") || 
+          currTrimmed.startsWith(">") || 
+          currTrimmed.startsWith("|") || 
+          currTrimmed.startsWith("```") || 
+          currTrimmed.startsWith("---") || 
+          currTrimmed.startsWith("![") || 
+          currTrimmed.startsWith("- ") || 
+          currTrimmed.startsWith("* ") || 
+          /^\d+\.\s+/.test(currTrimmed)) {
+        break;
+      }
+      paraText += lines[i] + "\n";
+      i++;
+    }
+    if (paraText.trim().length > 0) {
+      blocks.push({ type: "paragraph", text: paraText.trim() });
+    } else {
+      i++;
+    }
+  }
+  
+  return blocks;
+}
+
+function parseInlineMarkdown(text: string): React.ReactNode[] {
+  const regex = /(\*\*.*?\*\*|\*.*?\*|`.*?`|\[.*?\]\(.*?\))/g;
+  const parts = text.split(regex);
+  
+  return parts.map((part, idx) => {
+    if (part.startsWith("**") && part.endsWith("**")) {
+      return <strong key={idx} className="font-bold text-white">{part.slice(2, -2)}</strong>;
+    }
+    if (part.startsWith("*") && part.endsWith("*")) {
+      return <em key={idx} className="italic text-slate-350">{part.slice(1, -1)}</em>;
+    }
+    if (part.startsWith("`") && part.endsWith("`")) {
+      return <code key={idx} className="px-1.5 py-0.5 bg-slate-950 border border-slate-900/60 rounded font-mono text-xs text-indigo-400">{part.slice(1, -1)}</code>;
+    }
+    if (part.startsWith("[") && part.includes("](")) {
+      const match = part.match(/\[(.*?)\]\((.*?)\)/);
+      if (match) {
+        const [, linkText, url] = match;
+        const isInternal = url.startsWith("/") || url.startsWith("file://");
+        const cleanUrl = url.startsWith("file://") ? url.replace("file://", "") : url;
+        if (isInternal) {
+          return (
+            <Link key={idx} href={cleanUrl} className="text-[#d4af37] hover:text-[#f3e5ab] hover:underline font-semibold transition-colors">
+              {linkText}
+            </Link>
+          );
+        }
+        return (
+          <a key={idx} href={url} target="_blank" rel="noopener noreferrer" className="text-[#d4af37] hover:text-[#f3e5ab] hover:underline font-semibold transition-colors">
+            {linkText}
+          </a>
+        );
+      }
+    }
+    return part;
+  });
+}
+
+function renderBlock(block: MarkdownBlock, idx: number): React.ReactNode {
+  switch (block.type) {
+    case "heading": {
+      let anchorId = "";
+      let cleanText = block.text || "";
+      const anchorMatch = cleanText.match(/<a\s+name=["'](.*?)["']><\/a>\s*/i);
+      if (anchorMatch) {
+        anchorId = anchorMatch[1];
+        cleanText = cleanText.replace(anchorMatch[0], "").trim();
+      }
+      
+      if (block.level === 1) {
+        return null;
+      }
+      if (block.level === 2) {
+        return (
+          <h2 key={idx} id={anchorId || undefined} className="text-2xl sm:text-3xl font-bold font-display text-white mt-12 mb-5 tracking-wide border-b border-slate-900 pb-2">
+            {parseInlineMarkdown(cleanText)}
+          </h2>
+        );
+      }
+      if (block.level === 3) {
+        return (
+          <h3 key={idx} id={anchorId || undefined} className="text-xl sm:text-2xl font-bold font-display text-white mt-8 mb-4">
+            {parseInlineMarkdown(cleanText)}
+          </h3>
+        );
+      }
+      return null;
+    }
+    case "paragraph": {
+      const trimmedText = (block.text || "").trim();
+      if (trimmedText.length === 0) return null;
+      
+      const isMetadata = trimmedText.startsWith("*Published on:") && trimmedText.endsWith("*");
+      if (isMetadata) {
+        return (
+          <p key={idx} className="text-slate-400 text-xs sm:text-sm italic my-4 pb-4 border-b border-slate-900/60 font-light">
+            {parseInlineMarkdown(trimmedText.slice(1, -1))}
+          </p>
+        );
+      }
+      
+      let anchorId = "";
+      let cleanText = trimmedText;
+      const anchorMatch = cleanText.match(/<a\s+name=["'](.*?)["']><\/a>\s*/i);
+      if (anchorMatch) {
+        anchorId = anchorMatch[1];
+        cleanText = cleanText.replace(anchorMatch[0], "").trim();
+      }
+      
+      if (cleanText.length === 0) {
+        return anchorId ? <div key={idx} id={anchorId} /> : null;
+      }
+      
+      return (
+        <p key={idx} id={anchorId || undefined} className="text-slate-300 text-base sm:text-[18px] leading-[1.8] font-light my-6 tracking-wide">
+          {parseInlineMarkdown(cleanText)}
+        </p>
+      );
+    }
+    case "blockquote": {
+      const trimmedText = (block.text || "").trim();
+      let type: "tip" | "important" | "note" | "standard" = "standard";
+      let cleanQuote = trimmedText;
+      
+      if (trimmedText.startsWith("[!TIP]")) {
+        type = "tip";
+        cleanQuote = trimmedText.replace("[!TIP]", "").trim();
+      } else if (trimmedText.startsWith("[!IMPORTANT]")) {
+        type = "important";
+        cleanQuote = trimmedText.replace("[!IMPORTANT]", "").trim();
+      } else if (trimmedText.startsWith("[!NOTE]")) {
+        type = "note";
+        cleanQuote = trimmedText.replace("[!NOTE]", "").trim();
+      }
+      
+      if (type !== "standard") {
+        return (
+          <blockquote key={idx} className="p-6 bg-[#050e1c]/80 border-l-4 border-[#d4af37] rounded-r-xl my-8 text-slate-350 italic text-sm sm:text-base leading-relaxed">
+            <span className="block font-bold text-xs uppercase tracking-wider text-[#d4af37] mb-2 font-mono">
+              {type === "tip" ? "💡 Pro Tip" : type === "important" ? "⚠️ Important" : "ℹ️ Note"}
+            </span>
+            {parseInlineMarkdown(cleanQuote)}
+          </blockquote>
+        );
+      }
+      
+      return (
+        <blockquote key={idx} className="border-l-4 border-slate-800 pl-4 py-1 italic text-slate-400 my-6">
+          {parseInlineMarkdown(cleanQuote)}
+        </blockquote>
+      );
+    }
+    case "list": {
+      const Tag = block.ordered ? "ol" : "ul";
+      return (
+        <Tag key={idx} className={`my-6 pl-6 space-y-3 text-slate-350 ${block.ordered ? "list-decimal" : "list-disc"}`}>
+          {block.items?.map((item, itemIdx) => {
+            let cleanItem = item.trim();
+            let itemAnchorId = "";
+            const itemAnchorMatch = cleanItem.match(/<a\s+name=["'](.*?)["']><\/a>\s*/i);
+            if (itemAnchorMatch) {
+              itemAnchorId = itemAnchorMatch[1];
+              cleanItem = cleanItem.replace(itemAnchorMatch[0], "").trim();
+            }
+            return (
+              <li key={itemIdx} id={itemAnchorId || undefined} className="leading-relaxed font-light text-base sm:text-[18px]">
+                {parseInlineMarkdown(cleanItem)}
+              </li>
+            );
+          })}
+        </Tag>
+      );
+    }
+    case "code": {
+      const codeLines = (block.codeText || "").split("\n");
+      return (
+        <pre key={idx} className="p-5 bg-[#020813] border border-slate-900 rounded-xl overflow-x-auto my-6 text-xs sm:text-sm font-mono text-slate-350 leading-normal scrollbar-thin">
+          <code>{codeLines.join("\n")}</code>
+        </pre>
+      );
+    }
+    case "table": {
+      const rows = block.tableRows || [];
+      if (rows.length === 0) return null;
+      
+      const headers = rows[0];
+      const body = rows.slice(1);
+      return (
+        <div key={idx} className="my-8 overflow-x-auto border border-slate-900 rounded-xl">
+          <table className="min-w-full divide-y divide-slate-900 text-sm">
+            <thead className="bg-[#050e1c]">
+              <tr>
+                {headers.map((h, hIdx) => (
+                  <th key={hIdx} className="px-4 py-3 text-left font-semibold text-white uppercase tracking-wider text-xs">
+                    {parseInlineMarkdown(h)}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-950 bg-[#030a16]/40">
+              {body.map((row, rI) => (
+                <tr key={rI} className="hover:bg-slate-950/20">
+                  {row.map((cell, cI) => (
+                    <td key={cI} className="px-4 py-3 text-slate-300 font-light">
+                      {parseInlineMarkdown(cell)}
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      );
+    }
+    case "image": {
+      return (
+        <div key={idx} className="my-8 space-y-2">
+          <div className="relative w-full rounded-2xl overflow-hidden border border-slate-900 shadow-lg bg-slate-950">
+            <img src={block.imageUrl} alt={block.imageAlt || "Blueprint"} className="w-full h-auto max-h-[480px] object-cover" />
+          </div>
+          {block.imageAlt && (
+            <p className="text-center text-xs text-slate-500 font-light italic">
+              {block.imageAlt}
+            </p>
+          )}
+        </div>
+      );
+    }
+    case "hr": {
+      return <hr key={idx} className="border-0 h-[1px] bg-gradient-to-r from-transparent via-slate-800 to-transparent my-12" />;
+    }
+    default:
+      return null;
+  }
 }
