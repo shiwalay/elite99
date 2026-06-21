@@ -20,6 +20,9 @@ export interface Course {
     options: string[];
     correctIndex: number;
   };
+  category?: string;
+  subCategory?: string;
+  thumbnailUrl?: string;
 }
 
 export type Mission = Course;
@@ -117,7 +120,10 @@ export const DEFAULT_COURSES: Course[] = [
         "Writing daily manual emails to leads"
       ],
       correctIndex: 1
-    }
+    },
+    category: "Mindset",
+    subCategory: "Foundations",
+    thumbnailUrl: "https://images.unsplash.com/photo-1507537297725-24a1c029d3ca?q=80&w=640&auto=format&fit=crop"
   },
   {
     id: "c2",
@@ -138,7 +144,10 @@ export const DEFAULT_COURSES: Course[] = [
         "Free ebook downloads"
       ],
       correctIndex: 1
-    }
+    },
+    category: "Business",
+    subCategory: "Packaging",
+    thumbnailUrl: "https://images.unsplash.com/photo-1460925895917-afdab827c52f?q=80&w=640&auto=format&fit=crop"
   },
   {
     id: "c3",
@@ -159,7 +168,10 @@ export const DEFAULT_COURSES: Course[] = [
         "It features vibrant colors and graphics"
       ],
       correctIndex: 1
-    }
+    },
+    category: "Branding",
+    subCategory: "Authority",
+    thumbnailUrl: "https://images.unsplash.com/photo-1557804506-669a67965ba0?q=80&w=640&auto=format&fit=crop"
   },
   {
     id: "c4",
@@ -180,7 +192,10 @@ export const DEFAULT_COURSES: Course[] = [
         "Email subscriber bounce rates"
       ],
       correctIndex: 1
-    }
+    },
+    category: "Marketing",
+    subCategory: "Lead Gen",
+    thumbnailUrl: "https://images.unsplash.com/photo-1551836022-d5d88e9218df?q=80&w=640&auto=format&fit=crop"
   },
   {
     id: "c5",
@@ -201,7 +216,10 @@ export const DEFAULT_COURSES: Course[] = [
         "To email them newsletters"
       ],
       correctIndex: 1
-    }
+    },
+    category: "Sales",
+    subCategory: "Systems",
+    thumbnailUrl: "https://images.unsplash.com/photo-1556742044-3c52d6e88c62?q=80&w=640&auto=format&fit=crop"
   },
   {
     id: "c6",
@@ -222,7 +240,10 @@ export const DEFAULT_COURSES: Course[] = [
         "Static FAQ sections"
       ],
       correctIndex: 0
-    }
+    },
+    category: "Ecosystem",
+    subCategory: "GOS Map",
+    thumbnailUrl: "https://images.unsplash.com/photo-1531403009284-440f080d1e12?q=80&w=640&auto=format&fit=crop"
   },
   // Level 2 Modules
   {
@@ -243,7 +264,10 @@ export const DEFAULT_COURSES: Course[] = [
         "Sending invoices"
       ],
       correctIndex: 1
-    }
+    },
+    category: "Systems",
+    subCategory: "CRM & Sites",
+    thumbnailUrl: "https://images.unsplash.com/photo-1486312338219-ce68d2c6f44d?q=80&w=640&auto=format&fit=crop"
   },
   {
     id: "c8",
@@ -258,7 +282,10 @@ export const DEFAULT_COURSES: Course[] = [
       question: "Which tool works best as middle-tier routing middleware?",
       options: ["Wordpress", "Make.com or Zapier", "Stripe API", "Google Analytics"],
       correctIndex: 1
-    }
+    },
+    category: "Automation",
+    subCategory: "API & Webhooks",
+    thumbnailUrl: "https://images.unsplash.com/photo-1518770660439-4636190af475?q=80&w=640&auto=format&fit=crop"
   }
 ];
 

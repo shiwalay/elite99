@@ -83,13 +83,13 @@ const DEFAULT_POSTS: CommunityPost[] = [
   }
 ];
 
-const isCourseUnlocked = (courseId: string, completedLessons: string[], passedQuizzes: string[]) => {
-  const index = DEFAULT_COURSES.findIndex(c => c.id === courseId);
-  if (index <= 0) return true; // First course c1 is always unlocked
+const isCourseUnlocked = (courseId: string, completedLessons: string[], passedQuizzes: string[], currentCourses: Course[]) => {
+  const index = currentCourses.findIndex(c => c.id === courseId);
+  if (index <= 0) return true; // First course is always unlocked
 
   // Check if all prior courses are completed
   for (let i = 0; i < index; i++) {
-    const prior = DEFAULT_COURSES[i];
+    const prior = currentCourses[i];
     const priorLessonsCompleted = prior.lessons.every(l => completedLessons.includes(l.id));
     const priorQuizPassed = passedQuizzes.includes(prior.id);
     if (!priorLessonsCompleted || !priorQuizPassed) {
@@ -136,8 +136,23 @@ export default function AcademyPage() {
     submitAiCoachMessage
   } = useEcosystemStore();
 
+  const [coursesList, setCoursesList] = useState<Course[]>(DEFAULT_COURSES);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("academy_courses_list");
+      if (saved) {
+        try {
+          setCoursesList(JSON.parse(saved));
+        } catch (e) {
+          console.error("Failed to parse academy_courses_list", e);
+        }
+      }
+    }
+  }, []);
+
   // Derived state calculations for Level 1 and Level 2 progression
-  const l1Count = DEFAULT_COURSES.filter(c => c.level === 1).filter(course => {
+  const l1Count = coursesList.filter(c => c.level === 1).filter(course => {
     const lessonsCompleted = course.lessons.every(l => completedLessons.includes(l.id));
     const quizPassed = passedQuizzes.includes(course.id);
     return lessonsCompleted && quizPassed;
@@ -145,7 +160,7 @@ export default function AcademyPage() {
 
   const isL1Finished = l1Count === 6;
 
-  const l2Count = DEFAULT_COURSES.filter(c => c.level === 2).filter(course => {
+  const l2Count = coursesList.filter(c => c.level === 2).filter(course => {
     const lessonsCompleted = course.lessons.every(l => completedLessons.includes(l.id));
     const quizPassed = passedQuizzes.includes(course.id);
     return lessonsCompleted && quizPassed;
@@ -569,7 +584,7 @@ export default function AcademyPage() {
   const checkedHabitsCount = Object.values(habitsChecked).filter(Boolean).length;
   const consistencyPercent = Math.round((checkedHabitsCount / 9) * 100);
 
-  const totalLessonsCount = DEFAULT_COURSES.reduce((acc, c) => acc + c.lessons.length, 0);
+  const totalLessonsCount = coursesList.reduce((acc, c) => acc + c.lessons.length, 0);
   const lessonsCompletedCount = completedLessons.length;
   const overallProgressPercent = totalLessonsCount > 0 
     ? Math.round((lessonsCompletedCount / totalLessonsCount) * 100)
@@ -577,7 +592,7 @@ export default function AcademyPage() {
 
   // Active quest estimation
   const getActiveQuest = () => {
-    for (const course of DEFAULT_COURSES) {
+    for (const course of coursesList) {
       if (course.level <= (user?.unlockedLevel || 1)) {
         for (const lesson of course.lessons) {
           if (!completedLessons.includes(lesson.id)) {
@@ -1878,29 +1893,54 @@ export default function AcademyPage() {
                           </div>
 
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            {DEFAULT_COURSES.filter(c => c.level === 1).map((course) => {
+                            {coursesList.filter(c => c.level === 1).map((course) => {
                               const isCompleted = course.lessons.every((l) => completedLessons.includes(l.id)) && passedQuizzes.includes(course.id);
                               const isStarted = course.lessons.some((l) => completedLessons.includes(l.id));
-                              const unlocked = isCourseUnlocked(course.id, completedLessons, passedQuizzes);
+                              const unlocked = isCourseUnlocked(course.id, completedLessons, passedQuizzes, coursesList);
                               const isLocked = !unlocked;
 
                               return (
                                 <Card key={course.id} className="flex flex-col justify-between border-slate-805 bg-slate-900/20 hover:border-slate-705 transition-all">
-                                  <div className="space-y-2">
-                                    <div className="flex justify-between items-start gap-2">
-                                      <span className="text-[9px] font-bold text-slate-550 uppercase tracking-widest font-mono">{course.duration}</span>
-                                      {isCompleted ? (
-                                        <span className="badge-success">GRADUATED</span>
-                                      ) : isStarted ? (
-                                        <span className="badge-warning">IN PROGRESS</span>
-                                      ) : isLocked ? (
-                                        <span className="badge-neutral flex items-center gap-1"><Lock className="h-2.5 w-2.5 text-slate-550" /> LOCKED</span>
-                                      ) : (
-                                        <span className="badge-neutral">UNSTARTED</span>
+                                  <div className="space-y-2 flex-grow flex flex-col justify-between">
+                                    <div className="space-y-2">
+                                      <div className="flex justify-between items-start gap-2">
+                                        <div className="flex flex-wrap items-center gap-1.5">
+                                          <span className="text-[9px] font-bold text-slate-550 uppercase tracking-widest font-mono">{course.duration}</span>
+                                          {course.category && (
+                                            <span className="bg-indigo-600/15 text-indigo-400 border border-indigo-500/20 px-1.5 py-0.5 rounded text-[8px] font-mono font-semibold">
+                                              {course.category}
+                                            </span>
+                                          )}
+                                          {course.subCategory && (
+                                            <span className="bg-emerald-500/15 text-emerald-400 border border-emerald-500/20 px-1.5 py-0.5 rounded text-[8px] font-mono font-semibold">
+                                              {course.subCategory}
+                                            </span>
+                                          )}
+                                        </div>
+                                        {isCompleted ? (
+                                          <span className="badge-success">GRADUATED</span>
+                                        ) : isStarted ? (
+                                          <span className="badge-warning">IN PROGRESS</span>
+                                        ) : isLocked ? (
+                                          <span className="badge-neutral flex items-center gap-1"><Lock className="h-2.5 w-2.5 text-slate-550" /> LOCKED</span>
+                                        ) : (
+                                          <span className="badge-neutral">UNSTARTED</span>
+                                        )}
+                                      </div>
+
+                                      {course.thumbnailUrl && (
+                                        <div className="w-full h-32 rounded-lg overflow-hidden relative my-2 border border-slate-800">
+                                          <img
+                                            src={course.thumbnailUrl}
+                                            alt={course.title}
+                                            className="w-full h-full object-cover transition-transform duration-300 hover:scale-105"
+                                          />
+                                        </div>
                                       )}
+
+                                      <h4 className="font-bold text-sm text-slate-100">{course.title}</h4>
+                                      <p className="text-xs text-slate-400 font-light leading-normal">{course.description}</p>
                                     </div>
-                                    <h4 className="font-bold text-sm text-slate-100">{course.title}</h4>
-                                    <p className="text-xs text-slate-400 font-light leading-normal">{course.description}</p>
                                   </div>
                                   <div className="pt-4 border-t border-slate-800/80 mt-4 flex items-center justify-between">
                                     <span className="text-[10px] text-slate-400 font-medium font-mono">{course.lessons.length} Quest Nodes</span>
@@ -1972,29 +2012,54 @@ export default function AcademyPage() {
                               </div>
 
                               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                {DEFAULT_COURSES.filter(c => c.level === 2).map((course) => {
+                                {coursesList.filter(c => c.level === 2).map((course) => {
                                   const isCompleted = course.lessons.every((l) => completedLessons.includes(l.id)) && passedQuizzes.includes(course.id);
                                   const isStarted = course.lessons.some((l) => completedLessons.includes(l.id));
-                                  const unlocked = isCourseUnlocked(course.id, completedLessons, passedQuizzes);
+                                  const unlocked = isCourseUnlocked(course.id, completedLessons, passedQuizzes, coursesList);
                                   const isLocked = !unlocked;
 
                                   return (
                                     <Card key={course.id} className="flex flex-col justify-between border-slate-805 bg-slate-900/20 hover:border-slate-705 transition-all">
-                                      <div className="space-y-2">
-                                        <div className="flex justify-between items-start gap-2">
-                                          <span className="text-[9px] font-bold text-slate-550 uppercase tracking-widest font-mono">{course.duration}</span>
-                                          {isCompleted ? (
-                                            <span className="badge-success">GRADUATED</span>
-                                          ) : isStarted ? (
-                                            <span className="badge-warning">IN PROGRESS</span>
-                                          ) : isLocked ? (
-                                            <span className="badge-neutral flex items-center gap-1"><Lock className="h-2.5 w-2.5 text-slate-550" /> LOCKED</span>
-                                          ) : (
-                                            <span className="badge-neutral">UNSTARTED</span>
+                                      <div className="space-y-2 flex-grow flex flex-col justify-between">
+                                        <div className="space-y-2">
+                                          <div className="flex justify-between items-start gap-2">
+                                            <div className="flex flex-wrap items-center gap-1.5">
+                                              <span className="text-[9px] font-bold text-slate-550 uppercase tracking-widest font-mono">{course.duration}</span>
+                                              {course.category && (
+                                                <span className="bg-indigo-600/15 text-indigo-400 border border-indigo-500/20 px-1.5 py-0.5 rounded text-[8px] font-mono font-semibold">
+                                                  {course.category}
+                                                </span>
+                                              )}
+                                              {course.subCategory && (
+                                                <span className="bg-emerald-500/15 text-emerald-400 border border-emerald-500/20 px-1.5 py-0.5 rounded text-[8px] font-mono font-semibold">
+                                                  {course.subCategory}
+                                                </span>
+                                              )}
+                                            </div>
+                                            {isCompleted ? (
+                                              <span className="badge-success">GRADUATED</span>
+                                            ) : isStarted ? (
+                                              <span className="badge-warning">IN PROGRESS</span>
+                                            ) : isLocked ? (
+                                              <span className="badge-neutral flex items-center gap-1"><Lock className="h-2.5 w-2.5 text-slate-550" /> LOCKED</span>
+                                            ) : (
+                                              <span className="badge-neutral">UNSTARTED</span>
+                                            )}
+                                          </div>
+
+                                          {course.thumbnailUrl && (
+                                            <div className="w-full h-32 rounded-lg overflow-hidden relative my-2 border border-slate-800">
+                                              <img
+                                                src={course.thumbnailUrl}
+                                                alt={course.title}
+                                                className="w-full h-full object-cover transition-transform duration-300 hover:scale-105"
+                                              />
+                                            </div>
                                           )}
+
+                                          <h4 className="font-bold text-sm text-slate-100">{course.title}</h4>
+                                          <p className="text-xs text-slate-400 font-light leading-normal">{course.description}</p>
                                         </div>
-                                        <h4 className="font-bold text-sm text-slate-100">{course.title}</h4>
-                                        <p className="text-xs text-slate-400 font-light leading-normal">{course.description}</p>
                                       </div>
                                       <div className="pt-4 border-t border-slate-800/80 mt-4 flex items-center justify-between">
                                         <span className="text-[10px] text-slate-400 font-medium font-mono">{course.lessons.length} Quest Nodes</span>
@@ -2658,7 +2723,7 @@ export default function AcademyPage() {
                         <h3 className="text-xs font-bold uppercase tracking-wider border-b pb-2 border-slate-800 text-slate-350">Syllabus Completion Ledger</h3>
                         
                         <div className="space-y-3 relative before:absolute before:left-3.5 before:top-2 before:bottom-2 before:w-0.5 before:bg-slate-800">
-                          {DEFAULT_COURSES.map((course) => {
+                          {coursesList.map((course) => {
                             const completedCount = course.lessons.filter(l => completedLessons.includes(l.id)).length;
                             const isQuizCleared = passedQuizzes.includes(course.id);
                             const isFinished = completedCount === course.lessons.length && isQuizCleared;

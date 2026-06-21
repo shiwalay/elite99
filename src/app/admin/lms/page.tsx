@@ -21,7 +21,8 @@ import {
   FileText,
   AlertCircle,
   UserCheck,
-  Users
+  Users,
+  X
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useEcosystemStore } from "@/store/useEcosystemStore";
@@ -48,6 +49,7 @@ export default function LmsManagerPage() {
   const [coursesList, setCoursesList] = useState<Course[]>([]);
   const [lmsStudents, setLmsStudents] = useState<any[]>([]);
   const [lmsActiveView, setLmsActiveView] = useState<"dashboard" | "wizard" | "grading" | "gamification">("dashboard");
+  const [editingCourse, setEditingCourse] = useState<Course | null>(null);
   
   // Wizard course creation states
   const [activeStep, setActiveStep] = useState<number>(1);
@@ -55,7 +57,10 @@ export default function LmsManagerPage() {
     title: "",
     level: 1,
     duration: "Week 1",
-    description: ""
+    description: "",
+    category: "",
+    subCategory: "",
+    thumbnailUrl: ""
   });
   const [wizardLessons, setWizardLessons] = useState<Lesson[]>([]);
   const [newLessonForm, setNewLessonForm] = useState({
@@ -154,7 +159,10 @@ export default function LmsManagerPage() {
         question: quizForm.question || "What is the core target of this module?",
         options: [quizForm.o1 || "Option A", quizForm.o2 || "Option B", quizForm.o3 || "Option C", quizForm.o4 || "Option D"],
         correctIndex: Number(quizForm.correctIndex)
-      }
+      },
+      category: newCourseForm.category || undefined,
+      subCategory: newCourseForm.subCategory || undefined,
+      thumbnailUrl: newCourseForm.thumbnailUrl || undefined
     };
 
     const updatedCourses = [...coursesList, nextCourse];
@@ -163,7 +171,7 @@ export default function LmsManagerPage() {
     pushAuditLog(`LMS: Created course node "${newCourseForm.title}"`);
 
     // Reset wizard
-    setNewCourseForm({ title: "", level: 1, duration: "Week 1", description: "" });
+    setNewCourseForm({ title: "", level: 1, duration: "Week 1", description: "", category: "", subCategory: "", thumbnailUrl: "" });
     setWizardLessons([]);
     setQuizForm({ question: "", o1: "", o2: "", o3: "", o4: "", correctIndex: 0 });
     setActiveStep(1);
@@ -178,6 +186,76 @@ export default function LmsManagerPage() {
     setCoursesList(updated);
     localStorage.setItem("academy_courses_list", JSON.stringify(updated));
     pushAuditLog(`LMS: Removed course node ID ${id}`);
+  };
+
+  // Save edited course
+  const handleSaveEditedCourse = () => {
+    if (!editingCourse) return;
+    const updated = coursesList.map((c) => (c.id === editingCourse.id ? editingCourse : c));
+    setCoursesList(updated);
+    localStorage.setItem("academy_courses_list", JSON.stringify(updated));
+    pushAuditLog(`LMS: Edited course node "${editingCourse.title}"`);
+    setEditingCourse(null);
+    alert("Course updates compiled and saved successfully.");
+  };
+
+  // Edit Lesson Inline Changes
+  const handleEditLessonChange = (lessonIndex: number, field: keyof Lesson, value: string) => {
+    if (!editingCourse) return;
+    const updatedLessons = editingCourse.lessons.map((les, idx) => {
+      if (idx === lessonIndex) {
+        return { ...les, [field]: value };
+      }
+      return les;
+    });
+    setEditingCourse({ ...editingCourse, lessons: updatedLessons });
+  };
+
+  // Edit Lesson Delete
+  const handleEditLessonDelete = (lessonIndex: number) => {
+    if (!editingCourse) return;
+    const updatedLessons = editingCourse.lessons.filter((_, idx) => idx !== lessonIndex);
+    setEditingCourse({ ...editingCourse, lessons: updatedLessons });
+  };
+
+  // Edit Lesson Add Blank
+  const handleEditLessonAdd = () => {
+    if (!editingCourse) return;
+    const blankLesson: Lesson = {
+      id: "les_" + Date.now(),
+      title: "New Lesson Unit",
+      duration: "10 mins",
+      videoUrl: "https://www.w3schools.com/html/mov_bbb.mp4"
+    };
+    setEditingCourse({
+      ...editingCourse,
+      lessons: [...editingCourse.lessons, blankLesson]
+    });
+  };
+
+  // Drag and Drop ordering for lessons in editor modal
+  const handleEditLessonDragStart = (e: React.DragEvent, index: number) => {
+    e.dataTransfer.setData("text/plain", index.toString());
+  };
+
+  const handleEditLessonDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+  };
+
+  const handleEditLessonDrop = (e: React.DragEvent, targetIndex: number) => {
+    e.preventDefault();
+    if (!editingCourse) return;
+    const sourceIndex = parseInt(e.dataTransfer.getData("text/plain"), 10);
+    if (isNaN(sourceIndex) || sourceIndex === targetIndex) return;
+
+    const lessons = [...editingCourse.lessons];
+    const [removed] = lessons.splice(sourceIndex, 1);
+    lessons.splice(targetIndex, 0, removed);
+
+    setEditingCourse({
+      ...editingCourse,
+      lessons
+    });
   };
 
   // Adjust XP points
@@ -271,17 +349,42 @@ export default function LmsManagerPage() {
                 <Card key={course.id} className="flex flex-col justify-between">
                   <div className="space-y-2">
                     <div className="flex justify-between items-start gap-2">
-                      <span className="bg-indigo-600/15 text-indigo-600 dark:text-indigo-400 font-bold px-2 py-0.5 rounded text-[9px] font-mono">
-                        LEVEL {course.level} &bull; {course.duration}
-                      </span>
-                      <button
-                        onClick={() => handleDeleteCourse(course.id)}
-                        className="p-1 text-slate-400 hover:text-rose-500 rounded transition-colors cursor-pointer"
-                        title="Delete Course Node"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        <span className="bg-indigo-600/15 text-indigo-600 dark:text-indigo-400 font-bold px-2 py-0.5 rounded text-[9px] font-mono">
+                          LEVEL {course.level} &bull; {course.duration}
+                        </span>
+                        {course.category && (
+                          <span className="bg-slate-950/65 text-slate-400 border border-slate-805/85 px-1.5 py-0.5 rounded text-[9px] font-mono font-semibold">
+                            {course.category}{course.subCategory ? ` / ${course.subCategory}` : ''}
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <button
+                          onClick={() => setEditingCourse(course)}
+                          className="p-1 text-slate-400 hover:text-indigo-500 rounded transition-colors cursor-pointer"
+                          title="Edit Course Node"
+                        >
+                          <Edit2 className="h-4 w-4" />
+                        </button>
+                        <button
+                          onClick={() => handleDeleteCourse(course.id)}
+                          className="p-1 text-slate-400 hover:text-rose-500 rounded transition-colors cursor-pointer"
+                          title="Delete Course Node"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
                     </div>
+                    {course.thumbnailUrl && (
+                      <div className="w-full h-24 rounded-lg overflow-hidden relative mb-2">
+                        <img
+                          src={course.thumbnailUrl}
+                          alt={course.title}
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                    )}
                     <h3 className={`font-bold text-base ${theme === "light" ? "text-slate-800" : "text-white"}`}>{course.title}</h3>
                     <p className={`text-xs font-light leading-normal ${theme === "light" ? "text-slate-500" : "text-slate-400"}`}>{course.description}</p>
                     
@@ -373,6 +476,40 @@ export default function LmsManagerPage() {
                         className="input-field"
                       />
                     </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-1">
+                      <label className="font-bold text-slate-455 uppercase block font-mono">Category</label>
+                      <input
+                        type="text"
+                        placeholder="e.g. Systems or Business"
+                        value={newCourseForm.category}
+                        onChange={(e) => setNewCourseForm((prev) => ({ ...prev, category: e.target.value }))}
+                        className="input-field"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="font-bold text-slate-455 uppercase block font-mono">Sub-category</label>
+                      <input
+                        type="text"
+                        placeholder="e.g. CRM & Sites"
+                        value={newCourseForm.subCategory}
+                        onChange={(e) => setNewCourseForm((prev) => ({ ...prev, subCategory: e.target.value }))}
+                        className="input-field"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="font-bold text-slate-455 uppercase block font-mono">Course Thumbnail URL</label>
+                    <input
+                      type="url"
+                      placeholder="e.g. https://images.unsplash.com/... (optional)"
+                      value={newCourseForm.thumbnailUrl}
+                      onChange={(e) => setNewCourseForm((prev) => ({ ...prev, thumbnailUrl: e.target.value }))}
+                      className="input-field font-mono"
+                    />
                   </div>
 
                   <div className="space-y-1">
@@ -721,6 +858,283 @@ export default function LmsManagerPage() {
         )}
 
       </div>
+
+      {/* EDIT COURSE MODAL OVERLAY */}
+      <AnimatePresence>
+        {editingCourse && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-md p-4 overflow-y-auto">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="bg-slate-900 border border-slate-805 rounded-3xl p-6 md:p-8 max-w-4xl w-full max-h-[90vh] overflow-y-auto space-y-6 text-left relative shadow-2xl"
+            >
+              {/* Header */}
+              <div className="flex justify-between items-center border-b pb-4 border-slate-805">
+                <div>
+                  <span className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest font-mono font-bold">Curriculum Editor</span>
+                  <h2 className="text-xl font-bold font-display text-white mt-0.5">Edit Course Details</h2>
+                </div>
+                <button
+                  onClick={() => setEditingCourse(null)}
+                  className="p-1.5 rounded-lg hover:bg-slate-805 transition-colors text-slate-400 hover:text-white cursor-pointer"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+
+              {/* Grid 1: Basic course details */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+                <div className="space-y-1">
+                  <label className="font-bold text-slate-400 uppercase block font-mono">Course Title</label>
+                  <input
+                    type="text"
+                    value={editingCourse.title}
+                    onChange={(e) => setEditingCourse({ ...editingCourse, title: e.target.value })}
+                    className="input-field"
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1">
+                    <label className="font-bold text-slate-400 uppercase block font-mono">Duration Index</label>
+                    <input
+                      type="text"
+                      value={editingCourse.duration}
+                      onChange={(e) => setEditingCourse({ ...editingCourse, duration: e.target.value })}
+                      className="input-field"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="font-bold text-slate-400 uppercase block font-mono">Level</label>
+                    <select
+                      value={editingCourse.level}
+                      onChange={(e) => setEditingCourse({ ...editingCourse, level: Number(e.target.value) })}
+                      className="select-field"
+                    >
+                      <option value={1}>Level 1 Foundations</option>
+                      <option value={2}>Level 2 Integration</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1">
+                    <label className="font-bold text-slate-400 uppercase block font-mono">Category</label>
+                    <input
+                      type="text"
+                      value={editingCourse.category || ""}
+                      onChange={(e) => setEditingCourse({ ...editingCourse, category: e.target.value })}
+                      placeholder="e.g. Systems"
+                      className="input-field"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="font-bold text-slate-400 uppercase block font-mono">Sub-category</label>
+                    <input
+                      type="text"
+                      value={editingCourse.subCategory || ""}
+                      onChange={(e) => setEditingCourse({ ...editingCourse, subCategory: e.target.value })}
+                      placeholder="e.g. CRM & Webhooks"
+                      className="input-field"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="font-bold text-slate-400 uppercase block font-mono">Thumbnail Image URL</label>
+                  <input
+                    type="url"
+                    value={editingCourse.thumbnailUrl || ""}
+                    onChange={(e) => setEditingCourse({ ...editingCourse, thumbnailUrl: e.target.value })}
+                    placeholder="https://images.unsplash.com/..."
+                    className="input-field font-mono text-[11px]"
+                  />
+                </div>
+
+                <div className="md:col-span-2 space-y-1">
+                  <label className="font-bold text-slate-400 uppercase block font-mono">Description</label>
+                  <textarea
+                    rows={2}
+                    value={editingCourse.description}
+                    onChange={(e) => setEditingCourse({ ...editingCourse, description: e.target.value })}
+                    className="textarea-field h-16"
+                  />
+                </div>
+              </div>
+
+              {/* Course Thumbnail Live Preview */}
+              {editingCourse.thumbnailUrl && (
+                <div className="border border-slate-805 rounded-2xl p-4 bg-slate-950/40 text-xs space-y-2">
+                  <span className="font-bold text-slate-500 uppercase block font-mono text-[9px]">Thumbnail Preview</span>
+                  <div className="w-48 h-28 rounded-xl overflow-hidden relative border border-slate-805 bg-slate-950">
+                    <img
+                      src={editingCourse.thumbnailUrl}
+                      alt="Thumbnail preview"
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).src = "https://images.unsplash.com/photo-1594322436404-5a0526db4d13?q=80&w=480&auto=format&fit=crop";
+                      }}
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* Quiz Checkgate Configuration */}
+              <div className="border border-slate-805 rounded-3xl p-5 bg-slate-950/20 space-y-4">
+                <div className="flex items-center gap-1.5 border-b pb-2 border-slate-805">
+                  <HelpCircle className="h-4 w-4 text-indigo-400" />
+                  <span className="text-[10px] font-bold text-slate-300 uppercase tracking-wider font-mono">Quiz Checkgate Parameters</span>
+                </div>
+                <div className="space-y-3 text-xs">
+                  <div className="space-y-1">
+                    <label className="font-bold text-slate-455 uppercase block font-mono">Quiz Question</label>
+                    <input
+                      type="text"
+                      value={editingCourse.quiz.question}
+                      onChange={(e) => setEditingCourse({
+                        ...editingCourse,
+                        quiz: { ...editingCourse.quiz, question: e.target.value }
+                      })}
+                      className="input-field"
+                    />
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    {editingCourse.quiz.options.map((opt, oIdx) => (
+                      <div key={oIdx} className="space-y-1">
+                        <label className="font-bold text-slate-500 block font-mono text-[10px]">Option {oIdx + 1}</label>
+                        <input
+                          type="text"
+                          value={opt}
+                          onChange={(e) => {
+                            const newOptions = [...editingCourse.quiz.options];
+                            newOptions[oIdx] = e.target.value;
+                            setEditingCourse({
+                              ...editingCourse,
+                              quiz: { ...editingCourse.quiz, options: newOptions }
+                            });
+                          }}
+                          className="input-field"
+                        />
+                      </div>
+                    ))}
+                  </div>
+                  <div className="space-y-1 max-w-[200px]">
+                    <label className="font-bold text-slate-455 uppercase block font-mono">Correct Option Index</label>
+                    <select
+                      value={editingCourse.quiz.correctIndex}
+                      onChange={(e) => setEditingCourse({
+                        ...editingCourse,
+                        quiz: { ...editingCourse.quiz, correctIndex: Number(e.target.value) }
+                      })}
+                      className="select-field"
+                    >
+                      {editingCourse.quiz.options.map((_, oIdx) => (
+                        <option key={oIdx} value={oIdx}>Option {oIdx + 1}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              {/* Lessons Reordering & Editor */}
+              <div className="space-y-4">
+                <div className="flex justify-between items-center border-b pb-2 border-slate-805">
+                  <div className="flex items-center gap-1.5">
+                    <Video className="h-4 w-4 text-indigo-400" />
+                    <span className="text-[10px] font-bold text-slate-300 uppercase tracking-wider font-mono">Lessons Sequencing (Drag to Reorder)</span>
+                  </div>
+                  <button
+                    onClick={handleEditLessonAdd}
+                    className="btn-primary text-[10px] uppercase font-bold py-1 px-3 flex items-center gap-1 cursor-pointer"
+                  >
+                    <Plus className="h-3.5 w-3.5" /> Add Lesson Unit
+                  </button>
+                </div>
+
+                <div className="space-y-3">
+                  {editingCourse.lessons.length > 0 ? (
+                    editingCourse.lessons.map((les, idx) => (
+                      <div
+                        key={les.id}
+                        draggable
+                        onDragStart={(e) => handleEditLessonDragStart(e, idx)}
+                        onDragOver={handleEditLessonDragOver}
+                        onDrop={(e) => handleEditLessonDrop(e, idx)}
+                        className="p-4 border border-slate-805 rounded-2xl bg-slate-950/40 hover:bg-slate-950/70 transition-all flex flex-col md:flex-row items-stretch md:items-center gap-4 cursor-grab active:cursor-grabbing group"
+                      >
+                        {/* Drag Handle Indicator */}
+                        <div className="flex items-center gap-1.5 select-none text-slate-650 group-hover:text-slate-400 font-mono text-[9px] font-bold uppercase shrink-0">
+                          <span className="text-base leading-none">⋮⋮</span>
+                          <span>Unit {idx + 1}</span>
+                        </div>
+
+                        {/* Lesson Inputs */}
+                        <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-2 text-[11px]">
+                          <input
+                            type="text"
+                            value={les.title}
+                            placeholder="Lesson Title"
+                            onChange={(e) => handleEditLessonChange(idx, "title", e.target.value)}
+                            className="input-field bg-slate-900/60"
+                          />
+                          <input
+                            type="text"
+                            value={les.duration}
+                            placeholder="Duration (e.g. 15 mins)"
+                            onChange={(e) => handleEditLessonChange(idx, "duration", e.target.value)}
+                            className="input-field bg-slate-900/60"
+                          />
+                          <input
+                            type="url"
+                            value={les.videoUrl}
+                            placeholder="Video Link (URL)"
+                            onChange={(e) => handleEditLessonChange(idx, "videoUrl", e.target.value)}
+                            className="input-field bg-slate-900/60 font-mono text-[10px]"
+                          />
+                          <input
+                            type="url"
+                            value={les.shareLink || ""}
+                            placeholder="Resource Link (PDF/Website - optional)"
+                            onChange={(e) => handleEditLessonChange(idx, "shareLink", e.target.value)}
+                            className="input-field bg-slate-900/60 font-mono text-[10px]"
+                          />
+                        </div>
+
+                        {/* Delete Lesson Button */}
+                        <button
+                          onClick={() => handleEditLessonDelete(idx)}
+                          className="p-2 text-slate-500 hover:text-rose-500 transition-colors shrink-0 rounded cursor-pointer"
+                          title="Remove Lesson Unit"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
+                    ))
+                  ) : (
+                    <p className="text-xs text-slate-500 italic py-2 text-center font-light">No lessons exist in this course. Click Add Lesson to insert units.</p>
+                  )}
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex justify-end gap-3 pt-4 border-t border-slate-805">
+                <button
+                  onClick={() => setEditingCourse(null)}
+                  className="btn-secondary text-xs uppercase tracking-wider font-bold"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleSaveEditedCourse}
+                  className="btn-primary text-xs uppercase tracking-wider font-bold flex items-center gap-1.5"
+                >
+                  <Check className="h-4 w-4" /> Save Curriculum Updates
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
