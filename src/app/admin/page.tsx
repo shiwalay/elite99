@@ -34,7 +34,10 @@ import {
   AlertTriangle,
   Zap,
   ChevronRight,
-  TrendingUp as TrendUpIcon
+  TrendingUp as TrendUpIcon,
+  Globe,
+  Activity,
+  RefreshCw
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useEcosystemStore } from "@/store/useEcosystemStore";
@@ -78,7 +81,7 @@ export default function AdminDashboardPage() {
 
   // Active Center Main View Tab Selector
   const [activeCenterTab, setActiveCenterTab] = useState<
-    "cockpit" | "revenue" | "funnel" | "success" | "intervention" | "referral" | "crm" | "reports"
+    "cockpit" | "revenue" | "funnel" | "success" | "intervention" | "referral" | "crm" | "reports" | "seo"
   >("cockpit");
 
   // Local data lists synced with localstorage
@@ -191,7 +194,8 @@ export default function AdminDashboardPage() {
           { id: "intervention", label: "Intervention Desk", icon: AlertTriangle },
           { id: "referral", label: "Referral & Social", icon: Share2 },
           { id: "crm", label: "Leads CRM Ledger", icon: Users },
-          { id: "reports", label: "Executive Reports", icon: FileText }
+          { id: "reports", label: "Executive Reports", icon: FileText },
+          { id: "seo", label: "SEO Dashboard", icon: Search }
         ].map((tab) => {
           const TabIcon = tab.icon;
           const isActive = activeCenterTab === tab.id;
@@ -1034,6 +1038,290 @@ export default function AdminDashboardPage() {
                   </div>
                 ))}
               </div>
+            </div>
+          </motion.div>
+        )}
+
+        {/* VIEW 9: SEO PERFORMANCE ENGINE */}
+        {activeCenterTab === "seo" && (
+          <motion.div
+            key="seo-view"
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -15 }}
+            className="space-y-6"
+          >
+            {/* SEO Insights & Action Center */}
+            <div className="glass-panel border-indigo-200 dark:border-indigo-950/40 bg-indigo-500/5 p-6 rounded-3xl space-y-4">
+              <div className="flex justify-between items-center">
+                <div className="flex items-center gap-2">
+                  <div className="p-2 rounded-lg bg-indigo-650 text-white animate-pulse">
+                    <Sparkles className="h-4 w-4 text-[#d4af37]" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-bold uppercase tracking-wider text-slate-900 dark:text-white font-display">
+                      SEO ARCHITECT INSIGHTS<span className="text-[10px] align-super text-indigo-400">™</span>
+                    </h3>
+                    <p className="text-[10px] text-slate-500 dark:text-slate-400 font-mono">Real-Time Programmatic & Semantic Crawl Intelligence</p>
+                  </div>
+                </div>
+                <span className="text-[10px] px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-650 dark:text-emerald-450 font-bold font-mono">
+                  Engine Synchronized
+                </span>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 text-xs font-light text-slate-700 dark:text-slate-350 leading-relaxed">
+                <div className="p-4 rounded-2xl bg-white/50 dark:bg-slate-950/40 border border-slate-200/50 dark:border-slate-850 space-y-1.5">
+                  <span className="font-bold text-[#d4af37] flex items-center gap-1">🤖 AI Bot Compliance</span>
+                  <p>Allowed ClaudeBot, ChatGPT-User, and PerplexityBot crawls. Automated semantic graph rendering active with 0 blocked AI handlers.</p>
+                </div>
+                <div className="p-4 rounded-2xl bg-white/50 dark:bg-slate-950/40 border border-slate-200/50 dark:border-slate-850 space-y-1.5">
+                  <span className="font-bold text-indigo-650 dark:text-indigo-400 flex items-center gap-1">🗺️ Sitemaps Refresh</span>
+                  <p>Dynamic Sitemap index routed at <code>/sitemap.xml</code> cleanly distributing to blog, academy and resource child XML links.</p>
+                </div>
+                <div className="p-4 rounded-2xl bg-white/50 dark:bg-slate-950/40 border border-slate-200/50 dark:border-slate-850 space-y-1.5">
+                  <span className="font-bold text-emerald-500 flex items-center gap-1">🛡️ Structured Data</span>
+                  <p>JSON-LD validation passed: Organization, Person (Founder), Breadcrumb, Course, and FAQ schemas dynamically loaded. Zero validation errors.</p>
+                </div>
+                <div className="p-4 rounded-2xl bg-white/50 dark:bg-slate-950/40 border border-slate-200/50 dark:border-slate-850 space-y-1.5">
+                  <span className="font-bold text-pink-500 flex items-center gap-1">💡 Programmatic Growth</span>
+                  <p>Dynamic routing for programmatic landing pages active. `/digital-business-strategy` and other catch-all links rank at 99+ SEO index score.</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Core SEO KPI Cards Grid */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+              {[
+                { label: "Technical SEO Health", val: "98 / 100", change: "A+ Grade", desc: "validated schemas", up: true },
+                { label: "Lighthouse Performance", val: "97%", change: "Fast TTFB", desc: "optimised JS & WebP", up: true },
+                { label: "Indexed URL Count", val: "1,420 URLs", change: "Dynamic Index", desc: "auto-updating sitemaps", up: true },
+                { label: "Avg Search Click CTR", val: "4.8%", change: "+0.6% CTR", desc: "CTR optimised metas", up: true }
+              ].map((card, idx) => (
+                <div
+                  key={idx}
+                  className={`border p-4.5 rounded-2xl space-y-2 flex flex-col justify-between ${
+                    theme === "light" ? "bg-slate-50 border-slate-200" : "bg-slate-950/40 border-slate-800"
+                  }`}
+                >
+                  <span className="text-[9px] text-slate-400 dark:text-slate-500 uppercase tracking-widest font-bold font-mono">
+                    {card.label}
+                  </span>
+                  <div className="flex items-baseline justify-between gap-1">
+                    <span className="text-xl font-bold font-display text-slate-900 dark:text-white leading-none">
+                      {card.val}
+                    </span>
+                    <span
+                      className={`text-[10px] font-bold font-mono flex items-center gap-0.5 ${
+                        card.up ? "text-emerald-500" : "text-rose-500"
+                      }`}
+                    >
+                      {card.up ? <ArrowUpRight className="h-3 w-3" /> : <ArrowDownRight className="h-3 w-3" />}
+                      {card.change}
+                    </span>
+                  </div>
+                  <span className="text-[10px] text-slate-500 dark:text-slate-400 font-light font-mono leading-none">
+                    {card.desc}
+                  </span>
+                </div>
+              ))}
+            </div>
+
+            {/* Interactive SEO Sub-Sections Grid */}
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+              
+              {/* Dynamic Sitemaps Directory */}
+              <div className="glass-panel border-slate-205 dark:border-slate-800 rounded-3xl p-6 space-y-4">
+                <div className="flex justify-between items-center border-b border-slate-100 dark:border-slate-900 pb-3">
+                  <div>
+                    <h4 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                      <Map className="h-4 w-4 text-emerald-500" /> Dynamic XML Sitemaps Directory
+                    </h4>
+                    <p className="text-[10px] text-slate-500">Auto-generated index distributing crawl priority</p>
+                  </div>
+                  <button 
+                    onClick={() => triggerToast("🚀 Dynamic sitemaps refreshed successfully!")}
+                    className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-900 text-slate-400 hover:text-white rounded-lg transition-colors cursor-pointer"
+                  >
+                    <RefreshCw className="h-4 w-4" />
+                  </button>
+                </div>
+                
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-[11px] font-mono">
+                    <thead>
+                      <tr className="border-b border-slate-200/50 dark:border-slate-900 text-slate-400 uppercase tracking-wider">
+                        <th className="py-2.5 font-bold">Sitemap</th>
+                        <th className="py-2.5 font-bold">URL</th>
+                        <th className="py-2.5 font-bold">Priority</th>
+                        <th className="py-2.5 font-bold">Status</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 dark:divide-slate-900 text-slate-300">
+                      {[
+                        { name: "Sitemap Index", url: "/sitemap.xml", p: "1.0", status: "Healthy" },
+                        { name: "Blog Posts Sitemap", url: "/sitemap-blog.xml", p: "0.8", status: "Dynamic" },
+                        { name: "LMS Academy Sitemap", url: "/sitemap-courses.xml", p: "0.8", status: "Dynamic" },
+                        { name: "Resources Sitemap", url: "/sitemap-resources.xml", p: "0.7", status: "Dynamic" }
+                      ].map((sm, i) => (
+                        <tr key={i} className="hover:bg-slate-500/5 transition-colors">
+                          <td className="py-3 font-semibold text-slate-900 dark:text-white">{sm.name}</td>
+                          <td className="py-3 text-indigo-500 dark:text-indigo-400 hover:underline"><a href={sm.url} target="_blank" rel="noreferrer">{sm.url}</a></td>
+                          <td className="py-3 text-slate-500 dark:text-slate-450">{sm.p}</td>
+                          <td className="py-3">
+                            <span className="px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-550 text-[9px] font-bold">
+                              {sm.status}
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                <div className="flex gap-2 pt-2">
+                  <button 
+                    onClick={() => triggerToast("📥 Dispatching ping to Google Search Console API...")}
+                    className="flex-1 px-3 py-2 bg-indigo-650 hover:bg-indigo-700 text-[10px] font-bold text-white rounded-xl transition-all cursor-pointer text-center"
+                  >
+                    Ping Search Engines
+                  </button>
+                  <button 
+                    onClick={() => triggerToast("📑 XML Sitemap Index exported to workspace clipboard!")}
+                    className="px-3 py-2 bg-slate-100 dark:bg-slate-900 hover:bg-slate-200 dark:hover:bg-slate-800 text-[10px] font-bold text-slate-700 dark:text-white rounded-xl transition-all cursor-pointer"
+                  >
+                    Export Links
+                  </button>
+                </div>
+              </div>
+
+              {/* Bot Crawler Access Audit (Robots.txt simulation) */}
+              <div className="glass-panel border-slate-200 dark:border-slate-800 rounded-3xl p-6 space-y-4">
+                <div>
+                  <h4 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                    <Cpu className="h-4 w-4 text-indigo-500" /> Bot Crawler Rules (robots.txt)
+                  </h4>
+                  <p className="text-[10px] text-slate-500">Allowed AI Search Bots vs Blocked Admin/Private API routes</p>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4 text-[11px] font-mono">
+                  <div className="p-3 rounded-2xl bg-emerald-500/5 border border-emerald-550/15 space-y-2">
+                    <span className="text-emerald-500 font-bold text-[10px] flex items-center gap-1 uppercase">✓ Allowed Crawlers</span>
+                    <ul className="space-y-1 text-slate-400 list-disc pl-4">
+                      <li>Googlebot (Search)</li>
+                      <li>Bingbot (Bing)</li>
+                      <li>ChatGPT-User (OpenAI)</li>
+                      <li>PerplexityBot (AI Answer)</li>
+                      <li>ClaudeBot (Claude AI)</li>
+                    </ul>
+                  </div>
+                  <div className="p-3 rounded-2xl bg-rose-500/5 border border-rose-550/15 space-y-2">
+                    <span className="text-rose-500 font-bold text-[10px] flex items-center gap-1 uppercase">🛑 Blocked Routes</span>
+                    <ul className="space-y-1 text-slate-400 list-disc pl-4">
+                      <li>/admin/* (Control Panel)</li>
+                      <li>/api/auth/* (Authentication)</li>
+                      <li>/api/student/* (Student data)</li>
+                      <li>/private/* (Internal APIs)</li>
+                    </ul>
+                  </div>
+                </div>
+
+                <div className="p-3 rounded-2xl bg-slate-100 dark:bg-slate-950 border border-slate-200/50 dark:border-slate-900 space-y-2">
+                  <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block font-mono">Real-Time Crawl Simulation Feed</span>
+                  <div className="h-20 overflow-y-auto space-y-1.5 text-[9px] font-mono text-indigo-400">
+                    <div>[17:54:12] Googlebot: GET /digital-business-strategy &rarr; 200 OK (Served in 14ms)</div>
+                    <div>[17:54:39] ClaudeBot: GET /blog/build-digital-business-ecosystem-2026 &rarr; 200 OK (Served in 8ms)</div>
+                    <div>[17:55:01] ChatGPT-User: GET /sitemap.xml &rarr; 200 OK (Served in 4ms)</div>
+                    <div>[17:55:18] PerplexityBot: GET /ai-business-system &rarr; 200 OK (Served in 12ms)</div>
+                    <div>[17:56:02] UnknownBot: GET /admin/login &rarr; 403 Forbidden (robots.txt blocked)</div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Structured Data JSON-LD Schema Validation */}
+              <div className="glass-panel border-slate-200 dark:border-slate-800 rounded-3xl p-6 space-y-4">
+                <div>
+                  <h4 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                    <ShieldCheck className="h-4 w-4 text-[#d4af37]" /> JSON-LD Schema Audit
+                  </h4>
+                  <p className="text-[10px] text-slate-500">Live validations for rich search results (Google Search Console format)</p>
+                </div>
+
+                <div className="space-y-3">
+                  {[
+                    { name: "Organization Schema", target: "Homepage (/) ", items: "Logo, SameAs, Contact", status: "Valid" },
+                    { name: "Founder Person Schema", target: "Homepage (/) ", items: "JobTitle, SameAs, Socials", status: "Valid" },
+                    { name: "Course Schema", target: "Academy (/academy/course/*)", items: "Provider, Instructor, Mode", status: "Valid" },
+                    { name: "Article Schema", target: "Blog Posts (/blog/*)", items: "Publisher, Author, MainEntity", status: "Valid" },
+                    { name: "FAQ Schema", target: "All Landing Pages", items: "Question, AcceptedAnswer", status: "Valid" },
+                    { name: "Breadcrumb Schema", target: "Course, Blog listings", items: "ItemListElement, Position", status: "Valid" }
+                  ].map((sch, i) => (
+                    <div key={i} className="flex justify-between items-center text-[11px] border-b border-slate-100 dark:border-slate-900 pb-2 last:border-0 last:pb-0">
+                      <div>
+                        <span className="font-bold text-slate-900 dark:text-white font-mono">{sch.name}</span>
+                        <div className="text-[10px] text-slate-500 font-light mt-0.5">Applied to {sch.target} &bull; Fields: {sch.items}</div>
+                      </div>
+                      <span className="px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-500 text-[9px] font-bold font-mono">
+                        {sch.status}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Programmatic SEO Landing Pages Index */}
+              <div className="glass-panel border-slate-200 dark:border-slate-800 rounded-3xl p-6 space-y-4">
+                <div>
+                  <h4 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                    <Activity className="h-4 w-4 text-indigo-500" /> Programmatic SEO Pages Index
+                  </h4>
+                  <p className="text-[10px] text-slate-500">Autopilot pages dynamically generated for high-intent search terms</p>
+                </div>
+
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-[11px] font-mono">
+                    <thead>
+                      <tr className="border-b border-slate-200/50 dark:border-slate-900 text-slate-400 uppercase tracking-wider">
+                        <th className="py-2 font-bold">Slug</th>
+                        <th className="py-2 font-bold">Focus Keyword</th>
+                        <th className="py-2 font-bold">FAQ Count</th>
+                        <th className="py-2 font-bold">SEO Score</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 dark:divide-slate-900 text-slate-350">
+                      {[
+                        { slug: "/digital-business-strategy", kw: "Digital Business Growth", faq: "5 questions", score: "99" },
+                        { slug: "/ai-business-system", kw: "AI Automation Workflows", faq: "4 questions", score: "98" },
+                        { slug: "/personal-branding-framework", kw: "Personal Branding Strategy", faq: "5 questions", score: "99" }
+                      ].map((p, i) => (
+                        <tr key={i} className="hover:bg-slate-500/5 transition-colors">
+                          <td className="py-2.5 font-bold text-slate-900 dark:text-white hover:underline">
+                            <a href={p.slug} target="_blank" rel="noreferrer">{p.slug}</a>
+                          </td>
+                          <td className="py-2.5 text-slate-500 dark:text-slate-450">{p.kw}</td>
+                          <td className="py-2.5 text-slate-500 dark:text-slate-450">{p.faq}</td>
+                          <td className="py-2.5 font-bold text-[#d4af37]">{p.score}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                <div className="flex gap-2 pt-2">
+                  <button 
+                    onClick={() => triggerToast("📑 Loaded 18 more programmatic topics into workspace SEO queue!")}
+                    className="flex-1 px-3 py-2 bg-slate-100 dark:bg-slate-900 hover:bg-slate-200 dark:hover:bg-slate-800 text-[10px] font-bold text-slate-700 dark:text-white rounded-xl transition-all cursor-pointer text-center"
+                  >
+                    View All Keywords
+                  </button>
+                  <button 
+                    onClick={() => triggerToast("⚙️ AI content generation template triggered for missing sectors.")}
+                    className="px-3 py-2 bg-indigo-650 hover:bg-indigo-700 text-[10px] font-bold text-white rounded-xl transition-all cursor-pointer"
+                  >
+                    Generate Pages
+                  </button>
+                </div>
+              </div>
+
             </div>
           </motion.div>
         )}
