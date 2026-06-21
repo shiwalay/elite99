@@ -122,7 +122,19 @@ export default function BlogPostDetailClient({
 
   // Custom visual markdown elements parser
   const renderParagraph = (text: string, pIdx: number) => {
-    const trimmed = text.trim();
+    let trimmed = text.trim();
+    
+    // Extract anchor name if present (e.g. <a name="introduction"></a>)
+    let anchorId = "";
+    const anchorMatch = trimmed.match(/<a\s+name=["'](.*?)["']><\/a>\s*/i);
+    if (anchorMatch) {
+      anchorId = anchorMatch[1];
+      trimmed = trimmed.replace(anchorMatch[0], "").trim();
+    }
+    
+    if (trimmed.length === 0) {
+      return null;
+    }
     
     // 1. Filter out SEO Brief Block
     if (
@@ -150,14 +162,14 @@ export default function BlogPostDetailClient({
     }
     if (trimmed.startsWith("## ")) {
       return (
-        <h2 key={pIdx} className="text-2xl sm:text-3xl font-bold font-display text-white mt-12 mb-4 tracking-wide border-b border-slate-900 pb-2">
+        <h2 key={pIdx} id={anchorId || undefined} className="text-2xl sm:text-3xl font-bold font-display text-white mt-12 mb-4 tracking-wide border-b border-slate-900 pb-2">
           {trimmed.replace("## ", "")}
         </h2>
       );
     }
     if (trimmed.startsWith("### ")) {
       return (
-        <h3 key={pIdx} className="text-xl sm:text-2xl font-bold font-display text-white mt-8 mb-3">
+        <h3 key={pIdx} id={anchorId || undefined} className="text-xl sm:text-2xl font-bold font-display text-white mt-8 mb-3">
           {trimmed.replace("### ", "")}
         </h3>
       );
