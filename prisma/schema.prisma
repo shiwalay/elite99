@@ -1,0 +1,170 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id        String     @id @default(cuid())
+  email     String     @unique
+  name      String?
+  role      String     @default("Editor") // SuperAdmin, Admin, Editor, Sales, Marketing
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  logs      AuditLog[]
+}
+
+model Lead {
+  id             String   @id @default(cuid())
+  name           String
+  email          String
+  mobile         String
+  businessType   String
+  monthlyRevenue String
+  challenge      String
+  notes          String?
+  status         String   @default("New") // New, Contacted, Qualified, Won, Lost
+  source         String   @default("Web Form") // Web Form, Masterclass, Lead Magnet
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+model BlogPost {
+  id              String   @id @default(cuid())
+  title           String
+  slug            String   @unique
+  excerpt         String
+  content         String
+  category        String
+  tags            String[]
+  status          String   @default("Draft") // Draft, Review, Published
+  metaTitle       String?
+  metaDescription String?
+  schemaMarkup    String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model Booking {
+  id           String   @id @default(cuid())
+  leadName     String
+  leadEmail    String
+  date         DateTime
+  durationMins Int      @default(30)
+  status       String   @default("Booked") // Booked, Completed, Rescheduled, Cancelled
+  meetingNotes String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model NewsletterSubscriber {
+  id        String   @id @default(cuid())
+  name      String?
+  email     String   @unique
+  status    String   @default("Subscribed") // Subscribed, Unsubscribed
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model MediaAsset {
+  id        String   @id @default(cuid())
+  filename  String
+  url       String
+  fileType  String // Image, Video, PDF, Icon
+  fileSize  Int
+  createdAt DateTime @default(now())
+}
+
+model AutomationWorkflow {
+  id        String   @id @default(cuid())
+  name      String
+  trigger   String // Lead_Form_Submitted, Resource_Downloaded, Newsletter_Subscribed
+  actions   String[] // Send_Email, Send_WhatsApp, Notify_Team
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  userId    String
+  action    String
+  details   String
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id])
+}
+
+model GlobalSetting {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  value     String
+  updatedAt DateTime @updatedAt
+}
+
+model StudentProfile {
+  id               String             @id @default(cuid())
+  email            String             @unique
+  name             String
+  role             String             @default("Student")
+  passwordHash     String?
+  unlockedLevel    Int                @default(1)
+  xp               Int                @default(120)
+  streakDays       Int                @default(3)
+  rank             String             @default("Seeker")
+  points           Int                @default(120)
+  onboarded        Boolean            @default(false)
+  onboardingData   String?            // JSON String of demographic profile answers
+  analyzedGoalCard String?            // JSON String of AI-analyzed goals
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+  completions      LessonCompletion[]
+  quizPasses       QuizPass[]
+  habitLogs        HabitLog[]
+  certificates     Certificate[]
+}
+
+model LessonCompletion {
+  id          String         @id @default(cuid())
+  studentId   String
+  lessonId    String
+  completedAt DateTime       @default(now())
+  student     StudentProfile @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@unique([studentId, lessonId])
+}
+
+model QuizPass {
+  id          String         @id @default(cuid())
+  studentId   String
+  courseId    String
+  score       Int
+  passedAt    DateTime       @default(now())
+  student     StudentProfile @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@unique([studentId, courseId])
+}
+
+model HabitLog {
+  id        String         @id @default(cuid())
+  studentId String
+  date      String         // YYYY-MM-DD
+  habitId   String
+  checked   Boolean        @default(false)
+  loggedAt  DateTime       @default(now())
+  student   StudentProfile @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@unique([studentId, date, habitId])
+}
+
+model Certificate {
+  id         String         @id @default(cuid())
+  studentId  String
+  certId     String         @unique
+  courseName String
+  issuedAt   DateTime       @default(now())
+  student    StudentProfile @relation(fields: [studentId], references: [id], onDelete: Cascade)
+}
+
