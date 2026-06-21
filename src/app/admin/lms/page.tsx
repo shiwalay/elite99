@@ -22,7 +22,8 @@ import {
   AlertCircle,
   UserCheck,
   Users,
-  X
+  X,
+  GripVertical
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useEcosystemStore } from "@/store/useEcosystemStore";
@@ -258,6 +259,35 @@ export default function LmsManagerPage() {
     });
   };
 
+  // Drag and Drop ordering for courses (modules) in dashboard overview
+  const handleCourseDragStart = (e: React.DragEvent, index: number) => {
+    e.dataTransfer.setData("text/course-index", index.toString());
+  };
+
+  const handleCourseDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+  };
+
+  const handleCourseDrop = (e: React.DragEvent, targetIndex: number) => {
+    e.preventDefault();
+    const sourceIndex = parseInt(e.dataTransfer.getData("text/course-index"), 10);
+    if (isNaN(sourceIndex) || sourceIndex === targetIndex) return;
+
+    const list = [...coursesList];
+    const [removed] = list.splice(sourceIndex, 1);
+    list.splice(targetIndex, 0, removed);
+
+    setCoursesList(list);
+    localStorage.setItem("academy_courses_list", JSON.stringify(list));
+
+    // Show a quick visual success toast
+    const toast = document.createElement("div");
+    toast.className = "fixed bottom-20 right-5 bg-indigo-600 text-white font-semibold px-4 py-3 rounded-xl shadow-lg z-50 text-xs border border-indigo-500/20";
+    toast.innerHTML = `✨ Module sequence updated successfully!`;
+    document.body.appendChild(toast);
+    setTimeout(() => toast.remove(), 3000);
+  };
+
   // Adjust XP points
   const handleAdjustXpSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -344,84 +374,96 @@ export default function LmsManagerPage() {
             animate={{ opacity: 1 }}
             className="space-y-6"
           >
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {coursesList.map((course) => (
-                <Card key={course.id} className="flex flex-col justify-between">
-                  <div className="space-y-2">
-                    <div className="flex justify-between items-start gap-2">
-                      <div className="flex flex-wrap items-center gap-1.5">
-                        <span className="bg-indigo-600/15 text-indigo-600 dark:text-indigo-400 font-bold px-2 py-0.5 rounded text-[9px] font-mono">
-                          LEVEL {course.level} &bull; {course.duration}
-                        </span>
-                        {course.category && (
-                          <span className="bg-slate-950/65 text-slate-400 border border-slate-805/85 px-1.5 py-0.5 rounded text-[9px] font-mono font-semibold">
-                            {course.category}{course.subCategory ? ` / ${course.subCategory}` : ''}
-                          </span>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <button
-                          onClick={() => setEditingCourse(course)}
-                          className="p-1 text-slate-400 hover:text-indigo-500 rounded transition-colors cursor-pointer"
-                          title="Edit Course Node"
-                        >
-                          <Edit2 className="h-4 w-4" />
-                        </button>
-                        <button
-                          onClick={() => handleDeleteCourse(course.id)}
-                          className="p-1 text-slate-400 hover:text-rose-500 rounded transition-colors cursor-pointer"
-                          title="Delete Course Node"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </button>
-                      </div>
-                    </div>
-                    {course.thumbnailUrl && (
-                      <div className="w-full h-24 rounded-lg overflow-hidden relative mb-2">
-                        <img
-                          src={course.thumbnailUrl}
-                          alt={course.title}
-                          className="w-full h-full object-cover"
-                        />
-                      </div>
-                    )}
-                    <h3 className={`font-bold text-base ${theme === "light" ? "text-slate-800" : "text-white"}`}>{course.title}</h3>
-                    <p className={`text-xs font-light leading-normal ${theme === "light" ? "text-slate-500" : "text-slate-400"}`}>{course.description}</p>
-                    
-                    {/* Lessons list */}
-                    <div className="pt-3 space-y-1">
-                      <span className="text-[9px] uppercase font-bold text-slate-500 dark:text-slate-400 tracking-wider block font-mono">Quest nodes list</span>
-                      {course.lessons.map((l, idx) => (
-                        <div key={l.id} className={`flex items-center justify-between text-xs p-2 border rounded-lg ${
-                          theme === "light" ? "bg-slate-50 border-slate-100" : "bg-slate-950/40 border-slate-800/80"
-                        }`}>
-                          <div className="flex flex-col min-w-0 pr-2">
-                            <span className="font-medium truncate">{idx + 1}. {l.title}</span>
-                            {l.shareLink && (
-                              <a
-                                href={l.shareLink}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-[9px] text-indigo-500 hover:text-indigo-400 font-mono mt-0.5 truncate hover:underline"
-                                title={l.shareLink}
-                              >
-                                🔗 {l.shareLink}
-                              </a>
-                            )}
+            <div className="flex flex-col gap-6">
+              {coursesList.map((course, idx) => (
+                <div
+                  key={course.id}
+                  draggable
+                  onDragStart={(e) => handleCourseDragStart(e, idx)}
+                  onDragOver={handleCourseDragOver}
+                  onDrop={(e) => handleCourseDrop(e, idx)}
+                  className="cursor-grab active:cursor-grabbing hover:scale-[1.005] transition-all"
+                >
+                  <Card className="flex flex-col justify-between">
+                    <div className="space-y-2">
+                      <div className="flex justify-between items-start gap-2">
+                        <div className="flex flex-wrap items-center gap-1.5">
+                          <div className="p-1 text-slate-550 dark:text-slate-400 hover:text-indigo-400 cursor-grab active:cursor-grabbing shrink-0" title="Drag to reorder Course Module">
+                            <GripVertical className="h-3.5 w-3.5" />
                           </div>
-                          <span className="text-[9px] text-slate-500 dark:text-slate-400 font-mono shrink-0">{l.duration}</span>
+                          <span className="bg-indigo-600/15 text-indigo-600 dark:text-indigo-400 font-bold px-2 py-0.5 rounded text-[9px] font-mono">
+                            LEVEL {course.level} &bull; {course.duration}
+                          </span>
+                          {course.category && (
+                            <span className="bg-slate-950/65 text-slate-400 border border-slate-805/85 px-1.5 py-0.5 rounded text-[9px] font-mono font-semibold">
+                              {course.category}{course.subCategory ? ` / ${course.subCategory}` : ''}
+                            </span>
+                          )}
                         </div>
-                      ))}
+                        <div className="flex items-center gap-1">
+                          <button
+                            onClick={() => setEditingCourse(course)}
+                            className="p-1 text-slate-400 hover:text-indigo-500 rounded transition-colors cursor-pointer"
+                            title="Edit Course Node"
+                          >
+                            <Edit2 className="h-4 w-4" />
+                          </button>
+                          <button
+                            onClick={() => handleDeleteCourse(course.id)}
+                            className="p-1 text-slate-400 hover:text-rose-500 rounded transition-colors cursor-pointer"
+                            title="Delete Course Node"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </div>
+                      </div>
+                      {course.thumbnailUrl && (
+                        <div className="w-full h-24 rounded-lg overflow-hidden relative mb-2">
+                          <img
+                            src={course.thumbnailUrl}
+                            alt={course.title}
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                      )}
+                      <h3 className={`font-bold text-base ${theme === "light" ? "text-slate-800" : "text-white"}`}>{course.title}</h3>
+                      <p className={`text-xs font-light leading-normal ${theme === "light" ? "text-slate-500" : "text-slate-400"}`}>{course.description}</p>
+                      
+                      {/* Lessons list */}
+                      <div className="pt-3 space-y-1">
+                        <span className="text-[9px] uppercase font-bold text-slate-500 dark:text-slate-400 tracking-wider block font-mono">Quest nodes list</span>
+                        {course.lessons.map((l, idx) => (
+                          <div key={l.id} className={`flex items-center justify-between text-xs p-2 border rounded-lg ${
+                            theme === "light" ? "bg-slate-50 border-slate-100" : "bg-slate-950/40 border-slate-800/80"
+                          }`}>
+                            <div className="flex flex-col min-w-0 pr-2">
+                              <span className="font-medium truncate">{idx + 1}. {l.title}</span>
+                              {l.shareLink && (
+                                <a
+                                  href={l.shareLink}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-[9px] text-indigo-500 hover:text-indigo-400 font-mono mt-0.5 truncate hover:underline"
+                                  title={l.shareLink}
+                                >
+                                  🔗 {l.shareLink}
+                                </a>
+                              )}
+                            </div>
+                            <span className="text-[9px] text-slate-500 dark:text-slate-400 font-mono shrink-0">{l.duration}</span>
+                          </div>
+                        ))}
+                      </div>
                     </div>
-                  </div>
 
-                  <div className={`pt-4 border-t mt-4 flex justify-between items-center text-[10px] text-slate-500 dark:text-slate-400 font-mono ${
-                    theme === "light" ? "border-slate-100" : "border-slate-800"
-                  }`}>
-                    <span>Quiz Barrier Configured</span>
-                    <span className="font-bold text-indigo-500">Cleared target Index: {course.quiz?.correctIndex}</span>
-                  </div>
-                </Card>
+                    <div className={`pt-4 border-t mt-4 flex justify-between items-center text-[10px] text-slate-500 dark:text-slate-400 font-mono ${
+                      theme === "light" ? "border-slate-100" : "border-slate-800"
+                    }`}>
+                      <span>Quiz Barrier Configured</span>
+                      <span className="font-bold text-indigo-500">Cleared target Index: {course.quiz?.correctIndex}</span>
+                    </div>
+                  </Card>
+                </div>
               ))}
             </div>
           </motion.div>
