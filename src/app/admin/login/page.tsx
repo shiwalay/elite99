@@ -49,7 +49,7 @@ export default function AdminLoginPage() {
     localStorage.removeItem("admin_authenticated");
   }, []);
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg("");
     setSuccessMsg("");
@@ -61,25 +61,32 @@ export default function AdminLoginPage() {
       return;
     }
 
-    // Load actual password from settings or use default
-    const savedPassword = localStorage.getItem("admin_password") || "Shiwalay$9393";
-    const savedEmail = "shiwalay@gmail.com";
-
     setIsLoading(true);
 
-    setTimeout(() => {
-      if (email.toLowerCase() === savedEmail && password === savedPassword) {
+    try {
+      const res = await fetch("/api/auth/admin-login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
+      const data = await res.json();
+
+      if (data.success) {
         setSuccessMsg("Credentials authorized. Redirecting...");
         localStorage.setItem("admin_authenticated", "true");
         setTimeout(() => {
           router.push("/admin");
         }, 800);
       } else {
-        setErrorMsg("Invalid administrative email address or password.");
+        setErrorMsg(data.error || "Invalid administrative email address or password.");
         setIsLoading(false);
         generateCaptcha();
       }
-    }, 1200);
+    } catch (err) {
+      setErrorMsg("Failed to connect to authentication server.");
+      setIsLoading(false);
+      generateCaptcha();
+    }
   };
 
   const cmsLinks = [

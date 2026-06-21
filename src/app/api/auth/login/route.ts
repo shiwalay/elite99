@@ -5,11 +5,21 @@ import { signJWT } from "@/lib/auth";
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { email, name, role = "Student" } = body;
+    const { email, name } = body;
+    const role = "Student"; // Force role to Student to prevent role escalation attacks
 
     if (!email) {
       return NextResponse.json(
         { success: false, error: "Email is required" },
+        { status: 400 }
+      );
+    }
+
+    // Email format validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return NextResponse.json(
+        { success: false, error: "Please provide a valid email address format" },
         { status: 400 }
       );
     }

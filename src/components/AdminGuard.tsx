@@ -13,15 +13,53 @@ function AdminGuardContent({ children }: { children: React.ReactNode }) {
   const { theme, toggleTheme } = useAdminTheme();
 
   useEffect(() => {
-    // Read auth status
-    const authStatus = localStorage.getItem("admin_authenticated") === "true";
-    setIsAuthenticated(authStatus);
+    let active = true;
 
-    if (!authStatus && pathname !== "/admin/login") {
-      router.push("/admin/login");
-    } else if (authStatus && pathname === "/admin/login") {
-      router.push("/admin");
+    async function checkAuth() {
+      try {
+        const res = await fetch("/api/auth/session");
+        const data = await res.json();
+        
+        if (!active) return;
+
+        const isUserAdmin = !!(
+          data.success &&
+          data.user &&
+          (data.user.role === "SuperAdmin" ||
+            data.user.role === "Admin" ||
+            data.user.role === "Editor")
+        );
+
+        setIsAuthenticated(isUserAdmin);
+
+        if (!isUserAdmin) {
+          localStorage.removeItem("admin_authenticated");
+          if (pathname !== "/admin/login") {
+            router.push("/admin/login");
+          }
+        } else {
+          localStorage.setItem("admin_authenticated", "true");
+          if (pathname === "/admin/login") {
+            router.push("/admin");
+          }
+        }
+      } catch (e) {
+        if (!active) return;
+        // Fallback to local storage if API call fails
+        const authStatus = localStorage.getItem("admin_authenticated") === "true";
+        setIsAuthenticated(authStatus);
+        
+        if (!authStatus && pathname !== "/admin/login") {
+          router.push("/admin/login");
+        }
+      }
     }
+
+    checkAuth();
+
+    return () => {
+      active = false;
+    };
   }, [pathname, router]);
 
   // Loading state overlay during check

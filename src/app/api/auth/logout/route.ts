@@ -16,9 +16,10 @@ export async function POST() {
 
   return response;
 }
-export async function GET() {
+export async function GET(request: Request) {
   // Allow GET logout links as well
-  const response = NextResponse.redirect(new URL("/", process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"));
+  // Using request.url to ensure the redirect is relative to the current host, preventing open redirect vulnerability
+  const response = NextResponse.redirect(new URL("/", request.url));
   
   response.cookies.set({
     name: "gos_session_token",

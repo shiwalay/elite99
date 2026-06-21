@@ -39,7 +39,10 @@ export default function FaqAccordion() {
       try {
         const parsed = JSON.parse(saved);
         if (parsed.faqs && parsed.faqs.length > 0) {
-          setFaqs(parsed.faqs);
+          // Defer state update to next tick to prevent synchronous render warnings
+          setTimeout(() => {
+            setFaqs(parsed.faqs);
+          }, 0);
         }
       } catch (e) {
         // Fallback

@@ -156,7 +156,7 @@ export default function Footer() {
               Get In Touch
             </h3>
             <p className="text-slate-400 text-sm mb-4 leading-relaxed font-light">
-              Have a project or partnership opportunity? Let's design your ecosystem.
+              Have a project or partnership opportunity? Let&apos;s design your ecosystem.
             </p>
             <div className="space-y-3">
               <a

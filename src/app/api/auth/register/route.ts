@@ -5,7 +5,8 @@ import { signJWT } from "@/lib/auth";
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { name, email, role = "Student", onboardingData } = body;
+    const { name, email, onboardingData } = body;
+    const role = "Student"; // Force role to Student to prevent role escalation attacks
 
     if (!name || !email) {
       return NextResponse.json(
@@ -14,28 +15,40 @@ export async function POST(request: Request) {
       );
     }
 
+    // Email format validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return NextResponse.json(
+        { success: false, error: "Please provide a valid email address format" },
+        { status: 400 }
+      );
+    }
+
     const dbActive = await isDbConnected();
     let userProfile: any = null;
 
     if (dbActive) {
-      // DB Mode: Check if student exists or create
+      // DB Mode: Check if student exists. If so, block duplicate registration
       const existing = await prisma.studentProfile.findUnique({
         where: { email: email.toLowerCase() },
       });
 
       if (existing) {
-        userProfile = existing;
-      } else {
-        userProfile = await prisma.studentProfile.create({
-          data: {
-            name,
-            email: email.toLowerCase(),
-            role,
-            onboarded: onboardingData ? true : false,
-            onboardingData: onboardingData ? JSON.stringify(onboardingData) : null,
-          },
-        });
+        return NextResponse.json(
+          { success: false, error: "This email address is already registered. Please log in instead." },
+          { status: 400 }
+        );
       }
+
+      userProfile = await prisma.studentProfile.create({
+        data: {
+          name,
+          email: email.toLowerCase(),
+          role,
+          onboarded: onboardingData ? true : false,
+          onboardingData: onboardingData ? JSON.stringify(onboardingData) : null,
+        },
+      });
     } else {
       // Mock Fallback Mode
       userProfile = {
