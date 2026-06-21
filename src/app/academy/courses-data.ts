@@ -3,6 +3,7 @@ export interface Lesson {
   title: string;
   duration: string;
   videoUrl: string;
+  shareLink?: string;
 }
 
 export type Quest = Lesson;
@@ -103,7 +104,7 @@ export const DEFAULT_COURSES: Course[] = [
     duration: "Week 1",
     description: "Re-wire your thinking from direct services provider to business ecosystem architect.",
     lessons: [
-      { id: "c1_l1", title: "Introduction to Ecosystem Architecting", duration: "10 mins", videoUrl: "https://www.w3schools.com/html/mov_bbb.mp4" },
+      { id: "c1_l1", title: "Introduction to Ecosystem Architecting", duration: "10 mins", videoUrl: "https://www.w3schools.com/html/mov_bbb.mp4", shareLink: "https://www.google.com" },
       { id: "c1_l2", title: "The Mindset Shift: Employee vs Owner", duration: "12 mins", videoUrl: "https://www.w3schools.com/html/mov_bbb.mp4" },
       { id: "c1_l3", title: "Designing Your 10x Scaling Plan", duration: "15 mins", videoUrl: "https://www.w3schools.com/html/mov_bbb.mp4" }
     ],
@@ -231,7 +232,7 @@ export const DEFAULT_COURSES: Course[] = [
     duration: "Module 1",
     description: "Build robust backend contact flows and responsive authority sites.",
     lessons: [
-      { id: "c7_l1", title: "Structuring Lead Pipelines", duration: "18 mins", videoUrl: "https://www.w3schools.com/html/mov_bbb.mp4" }
+      { id: "c7_l1", title: "Structuring Lead Pipelines", duration: "18 mins", videoUrl: "https://www.w3schools.com/html/mov_bbb.mp4", shareLink: "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf" }
     ],
     quiz: {
       question: "What is the primary purpose of pipeline tagging?",

@@ -61,7 +61,8 @@ export default function LmsManagerPage() {
   const [newLessonForm, setNewLessonForm] = useState({
     title: "",
     duration: "10 mins",
-    videoUrl: ""
+    videoUrl: "",
+    shareLink: ""
   });
   const [quizForm, setQuizForm] = useState({
     question: "",
@@ -133,10 +134,11 @@ export default function LmsManagerPage() {
       id: "les_" + Date.now(),
       title: newLessonForm.title,
       duration: newLessonForm.duration,
-      videoUrl: newLessonForm.videoUrl || "https://www.w3schools.com/html/mov_bbb.mp4"
+      videoUrl: newLessonForm.videoUrl || "https://www.w3schools.com/html/mov_bbb.mp4",
+      shareLink: newLessonForm.shareLink || undefined
     };
     setWizardLessons([...wizardLessons, lesson]);
-    setNewLessonForm({ title: "", duration: "10 mins", videoUrl: "" });
+    setNewLessonForm({ title: "", duration: "10 mins", videoUrl: "", shareLink: "" });
   };
 
   // Wizard Complete -> Save Course
@@ -290,7 +292,20 @@ export default function LmsManagerPage() {
                         <div key={l.id} className={`flex items-center justify-between text-xs p-2 border rounded-lg ${
                           theme === "light" ? "bg-slate-50 border-slate-100" : "bg-slate-950/40 border-slate-800/80"
                         }`}>
-                          <span className="font-medium">{idx + 1}. {l.title}</span>
+                          <div className="flex flex-col min-w-0 pr-2">
+                            <span className="font-medium truncate">{idx + 1}. {l.title}</span>
+                            {l.shareLink && (
+                              <a
+                                href={l.shareLink}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-[9px] text-indigo-500 hover:text-indigo-400 font-mono mt-0.5 truncate hover:underline"
+                                title={l.shareLink}
+                              >
+                                🔗 {l.shareLink}
+                              </a>
+                            )}
+                          </div>
                           <span className="text-[9px] text-slate-500 dark:text-slate-400 font-mono shrink-0">{l.duration}</span>
                         </div>
                       ))}
@@ -395,7 +410,12 @@ export default function LmsManagerPage() {
                           <div key={index} className={`flex justify-between items-center p-2.5 border rounded-lg ${
                             theme === "light" ? "bg-slate-50 border-slate-200" : "bg-slate-950/40 border-slate-800"
                           }`}>
-                            <span className="font-medium">{index + 1}. {l.title} ({l.duration})</span>
+                            <div className="flex flex-col">
+                              <span className="font-medium">{index + 1}. {l.title} ({l.duration})</span>
+                              {l.shareLink && (
+                                <span className="text-[9px] text-indigo-400 font-mono mt-0.5 truncate max-w-[300px]">🔗 Attached: {l.shareLink}</span>
+                              )}
+                            </div>
                             <button
                               onClick={() => setWizardLessons(wizardLessons.filter((_, i) => i !== index))}
                               className="p-1 text-slate-500 dark:text-slate-400 hover:text-rose-500 rounded cursor-pointer"
@@ -437,6 +457,13 @@ export default function LmsManagerPage() {
                         className="input-field"
                       />
                     </div>
+                    <input
+                      type="url"
+                      placeholder="Share link/Attached resource URL (PDF/Website - optional)"
+                      value={newLessonForm.shareLink || ""}
+                      onChange={(e) => setNewLessonForm((prev) => ({ ...prev, shareLink: e.target.value }))}
+                      className="input-field font-mono text-[11px]"
+                    />
                     <button
                       onClick={handleAddWizardLesson}
                       className="btn-primary w-full text-xs uppercase tracking-wider"

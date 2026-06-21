@@ -82,10 +82,12 @@ export default function LessonViewerPage() {
 
   // Navigation / layout states
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [coursesList, setCoursesList] = useState<Course[]>(DEFAULT_COURSES);
   const [activeCourse, setActiveCourse] = useState<Course | null>(null);
   const [activeLesson, setActiveLesson] = useState<Lesson | null>(null);
   const [showCompletionModal, setShowCompletionModal] = useState(false);
   const [completedModuleName, setCompletedModuleName] = useState("");
+  const [videoEnded, setVideoEnded] = useState(false);
 
   // Lesson quiz states
   const [selectedOption, setSelectedOption] = useState<number | null>(null);
@@ -109,6 +111,25 @@ export default function LessonViewerPage() {
   const chatEndRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
 
+  // Load courses List from localStorage or default
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const savedCourses = localStorage.getItem("academy_courses_list");
+      if (savedCourses) {
+        try {
+          setCoursesList(JSON.parse(savedCourses));
+        } catch (e) {
+          setCoursesList(DEFAULT_COURSES);
+        }
+      }
+    }
+  }, []);
+
+  // Reset videoEnded when lessonId changes
+  useEffect(() => {
+    setVideoEnded(false);
+  }, [lessonId]);
+
   // Validate authentication
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -123,7 +144,7 @@ export default function LessonViewerPage() {
   useEffect(() => {
     if (!courseId || !lessonId) return;
 
-    const course = DEFAULT_COURSES.find((c) => c.id === courseId);
+    const course = coursesList.find((c) => c.id === courseId);
     if (course) {
       setActiveCourse(course);
       const lesson = course.lessons.find((l) => l.id === lessonId);
@@ -136,7 +157,7 @@ export default function LessonViewerPage() {
         setQuizErrorMessage("");
       }
     }
-  }, [courseId, lessonId]);
+  }, [courseId, lessonId, coursesList]);
 
   // Initialize bot welcome
   useEffect(() => {
@@ -285,10 +306,10 @@ export default function LessonViewerPage() {
 
   // Helper: Prerequisite Check
   const getPriorCoursePrereqs = (course: Course) => {
-    const index = DEFAULT_COURSES.findIndex((c) => c.id === course.id);
+    const index = coursesList.findIndex((c) => c.id === course.id);
     if (index <= 0) return null;
 
-    const prior = DEFAULT_COURSES[index - 1];
+    const prior = coursesList[index - 1];
     const priorLessons = prior.lessons.map((l) => l.id);
     
     const allLessonsWatched = priorLessons.every((id) => completedLessons.includes(id));
@@ -322,6 +343,43 @@ export default function LessonViewerPage() {
     
     return true;
   };
+
+  const getNextLessonInfo = () => {
+    if (!activeCourse || !activeLesson || coursesList.length === 0) {
+      return { nextLesson: null, nextCourse: null, isNextAccessible: false };
+    }
+
+    const currentCourseIdx = coursesList.findIndex((c) => c.id === activeCourse.id);
+    if (currentCourseIdx === -1) {
+      return { nextLesson: null, nextCourse: null, isNextAccessible: false };
+    }
+
+    const currentLessonIdx = activeCourse.lessons.findIndex((l) => l.id === activeLesson.id);
+    if (currentLessonIdx === -1) {
+      return { nextLesson: null, nextCourse: null, isNextAccessible: false };
+    }
+
+    // Next lesson in same course
+    if (currentLessonIdx < activeCourse.lessons.length - 1) {
+      const nextLesson = activeCourse.lessons[currentLessonIdx + 1];
+      const isNextAccessible = isCourseAccessible(activeCourse);
+      return { nextLesson, nextCourse: activeCourse, isNextAccessible };
+    }
+
+    // Next lesson is first lesson of next course
+    if (currentCourseIdx < coursesList.length - 1) {
+      const nextCourse = coursesList[currentCourseIdx + 1];
+      if (nextCourse.lessons && nextCourse.lessons.length > 0) {
+        const nextLesson = nextCourse.lessons[0];
+        const isNextAccessible = isCourseAccessible(nextCourse);
+        return { nextLesson, nextCourse, isNextAccessible };
+      }
+    }
+
+    return { nextLesson: null, nextCourse: null, isNextAccessible: false };
+  };
+
+  const { nextLesson, nextCourse, isNextAccessible } = getNextLessonInfo();
 
   const triggerModuleCompletion = () => {
     if (!activeCourse) return;
@@ -510,7 +568,7 @@ export default function LessonViewerPage() {
             <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400 border-b pb-2 border-slate-800">Curriculum Map</h3>
             
             <div className="space-y-4">
-              {DEFAULT_COURSES.map((course) => {
+              {coursesList.map((course) => {
                 let unlockedLevel = user.unlockedLevel;
                 if (passedQuizzes.includes("c6")) unlockedLevel = Math.max(unlockedLevel, 2);
                 if (passedQuizzes.includes("c8")) unlockedLevel = Math.max(unlockedLevel, 3);
@@ -595,9 +653,58 @@ export default function LessonViewerPage() {
               ref={videoRef}
               src={activeLesson.videoUrl}
               controls
+              onEnded={() => {
+                setVideoEnded(true);
+                handleMarkWatched();
+              }}
               className="h-full w-full object-cover"
               poster="/images/dashboard-video-poster.jpg"
             />
+
+            {/* Play Next Overlay */}
+            {videoEnded && nextLesson && (
+              <div className="absolute inset-0 bg-slate-950/90 backdrop-blur-md flex flex-col items-center justify-center space-y-4 z-10 transition-all duration-300">
+                <div className="text-center space-y-1">
+                  <span className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest font-mono">Up Next</span>
+                  <h3 className="text-base font-bold text-white max-w-sm truncate px-4">{nextLesson.title}</h3>
+                  <p className="text-xs text-slate-400">{nextLesson.duration}</p>
+                </div>
+                <div className="flex flex-col items-center gap-3">
+                  {isNextAccessible ? (
+                    <Link
+                      href={`/academy/course/${nextCourse?.id}/${nextLesson.id}`}
+                      className="btn-primary flex items-center gap-2 text-xs uppercase tracking-wider shadow-lg shadow-indigo-500/25 px-6 py-2.5 rounded-xl font-bold"
+                    >
+                      Play Next Video <ChevronRight className="h-4 w-4" />
+                    </Link>
+                  ) : (
+                    <div className="flex flex-col items-center gap-2">
+                      <button
+                        disabled
+                        className="btn-primary opacity-50 cursor-not-allowed flex items-center gap-2 text-xs uppercase tracking-wider px-6 py-2.5 rounded-xl font-bold"
+                      >
+                        Play Next Video <Lock className="h-3.5 w-3.5" />
+                      </button>
+                      <span className="text-[10px] text-rose-400 font-bold font-mono">
+                        Locked: Complete Prior Course requirements
+                      </span>
+                    </div>
+                  )}
+                  <button
+                    onClick={() => {
+                      setVideoEnded(false);
+                      if (videoRef.current) {
+                        videoRef.current.currentTime = 0;
+                        videoRef.current.play();
+                      }
+                    }}
+                    className="text-xs font-bold uppercase tracking-wider text-slate-400 hover:text-white transition-colors cursor-pointer mt-2"
+                  >
+                    Replay Video
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* WATCH TRIGGER ACTION BAR */}
@@ -607,20 +714,68 @@ export default function LessonViewerPage() {
               <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 font-light">Duration: {activeLesson.duration} &bull; Fulfill watch status and clearing targets to proceed.</p>
             </div>
             
-            <button
-              onClick={handleMarkWatched}
-              disabled={activeLessonWatched}
-              className={`${activeLessonWatched ? "btn-success" : "btn-primary shadow-md"} text-xs uppercase tracking-wider`}
-            >
-              {activeLessonWatched ? (
-                <>
-                  <CheckCircle2 className="h-4 w-4" /> Watched & Saved
-                </>
-              ) : (
-                "Mark as Watched (+20 XP)"
+            <div className="flex flex-wrap items-center gap-2 shrink-0">
+              <button
+                onClick={handleMarkWatched}
+                disabled={activeLessonWatched}
+                className={`${activeLessonWatched ? "btn-success" : "btn-primary shadow-md"} text-xs uppercase tracking-wider flex items-center gap-1.5`}
+              >
+                {activeLessonWatched ? (
+                  <>
+                    <CheckCircle2 className="h-4 w-4" /> Watched & Saved
+                  </>
+                ) : (
+                  "Mark as Watched (+20 XP)"
+                )}
+              </button>
+
+              {nextLesson && (
+                isNextAccessible ? (
+                  <Link
+                    href={`/academy/course/${nextCourse?.id}/${nextLesson.id}`}
+                    className="btn-primary text-xs uppercase tracking-wider flex items-center gap-1.5 shadow-md"
+                  >
+                    Play Next <ChevronRight className="h-4 w-4" />
+                  </Link>
+                ) : (
+                  <button
+                    disabled
+                    className="btn-primary opacity-50 cursor-not-allowed text-xs uppercase tracking-wider flex items-center gap-1.5"
+                    title="Prerequisite locked. Complete prior requirements first."
+                  >
+                    Play Next <Lock className="h-3.5 w-3.5" />
+                  </button>
+                )
               )}
-            </button>
+            </div>
           </div>
+
+          {/* ATTACHED RESOURCE LINK */}
+          {activeLesson.shareLink && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="bg-gradient-to-r from-indigo-500/10 to-purple-500/10 border border-indigo-500/20 rounded-2xl p-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4"
+            >
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 bg-indigo-500/15 text-indigo-400 rounded-xl flex items-center justify-center shrink-0">
+                  <ExternalLink className="h-5 w-5" />
+                </div>
+                <div>
+                  <h4 className="font-bold text-xs text-slate-200">Attached Lesson Resource</h4>
+                  <p className="text-[10px] text-slate-400 font-light mt-0.5">Reference documents, PDFs, templates, or external links attached to this lesson.</p>
+                </div>
+              </div>
+              <a
+                href={activeLesson.shareLink}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="btn-primary text-xs uppercase tracking-wider flex items-center gap-1.5 self-stretch sm:self-auto justify-center"
+              >
+                Open Attached Resource <ExternalLink className="h-3.5 w-3.5" />
+              </a>
+            </motion.div>
+          )}
 
           {/* CHECKPOINT GATES GRIDS */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -971,7 +1126,7 @@ export default function LessonViewerPage() {
                   {activeCourse.level === 1 ? (
                     (() => {
                       const completedCount = ["c1", "c2", "c3", "c4", "c5", "c6"].filter(cId => {
-                        const c = DEFAULT_COURSES.find(x => x.id === cId);
+                        const c = coursesList.find(x => x.id === cId);
                         return c && c.lessons.every(l => completedLessons.includes(l.id)) && passedQuizzes.includes(cId);
                       }).length;
                       const progressPercent = Math.min(100, Math.round((completedCount / 6) * 100));
@@ -997,7 +1152,7 @@ export default function LessonViewerPage() {
                   ) : (
                     (() => {
                       const completedCount = ["c7", "c8"].filter(cId => {
-                        const c = DEFAULT_COURSES.find(x => x.id === cId);
+                        const c = coursesList.find(x => x.id === cId);
                         return c && c.lessons.every(l => completedLessons.includes(l.id)) && passedQuizzes.includes(cId);
                       }).length;
                       const progressPercent = Math.min(100, Math.round((completedCount / 2) * 100));
@@ -1029,11 +1184,11 @@ export default function LessonViewerPage() {
                 {activeCourse && (
                   (() => {
                     const isL1Finished = activeCourse.level === 1 && ["c1", "c2", "c3", "c4", "c5", "c6"].every(cId => {
-                      const c = DEFAULT_COURSES.find(x => x.id === cId);
+                      const c = coursesList.find(x => x.id === cId);
                       return c && c.lessons.every(l => completedLessons.includes(l.id)) && passedQuizzes.includes(cId);
                     });
                     const isL2Finished = activeCourse.level === 2 && ["c7", "c8"].every(cId => {
-                      const c = DEFAULT_COURSES.find(x => x.id === cId);
+                      const c = coursesList.find(x => x.id === cId);
                       return c && c.lessons.every(l => completedLessons.includes(l.id)) && passedQuizzes.includes(cId);
                     });
 
